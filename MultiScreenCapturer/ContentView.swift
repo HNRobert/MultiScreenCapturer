@@ -10,7 +10,7 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var screenshots: [Screenshot]
+    @Query(sort: \Screenshot.timestamp, order: .reverse) private var screenshots: [Screenshot]
     
     @State private var hideWindowBeforeCapture = false
     @State private var isCapturing = false
@@ -43,6 +43,12 @@ struct ContentView: View {
                             Button(action: { showingMainView = true }) {
                                 Label("Main Page", systemImage: "house")
                             }
+                        }
+                        ToolbarItem(placement: .destructiveAction) {
+                            Button(action: deleteSelectedScreenshot) {
+                                Label("Delete", systemImage: "trash")
+                            }
+                            .foregroundColor(.red)
                         }
                         ToolbarItem(placement: .primaryAction) {
                             Button(action: shareScreenshot) {
@@ -124,6 +130,33 @@ struct ContentView: View {
               let image = ScreenCapturer.loadImage(from: screenshot.filepath) else { return }
         
         ScreenCapturer.saveScreenshot(image)
+    }
+    
+    private func deleteSelectedScreenshot() {
+        if let screenshot = selectedScreenshot,
+           let currentIndex = screenshots.firstIndex(where: { $0.id == screenshot.id }) {
+            
+            // 确定下一个要选择的截图
+            let nextScreenshot: Screenshot?
+            if currentIndex + 1 < screenshots.count {
+                // 有更老的图片，选择它
+                nextScreenshot = screenshots[currentIndex + 1]
+            } else if currentIndex > 0 {
+                // 没有更老的，但有更新的图片
+                nextScreenshot = screenshots[currentIndex - 1]
+            } else {
+                // 这是唯一的图片
+                nextScreenshot = nil
+            }
+            
+            // 删除当前截图
+            try? FileManager.default.removeItem(atPath: screenshot.filepath)
+            modelContext.delete(screenshot)
+            
+            // 更新选择
+            selectedScreenshot = nextScreenshot
+            showingMainView = nextScreenshot == nil
+        }
     }
 }
 

@@ -18,7 +18,14 @@ struct ScreenshotPreviewView: View {
             }
         }
         .onAppear {
-            image = ScreenCapturer.loadImage(from: screenshot.filepath)
+            loadImage()
         }
+        .onChange(of: screenshot) { _, _ in
+            loadImage()
+        }
+    }
+    
+    private func loadImage() {
+        image = ScreenCapturer.loadImage(from: screenshot.filepath)
     }
 }
