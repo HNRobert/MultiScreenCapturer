@@ -22,7 +22,7 @@ struct ContentView: View {
             List(selection: $selectedScreenshot) {
                 ForEach(screenshots) { screenshot in
                     NavigationLink(value: screenshot) {
-                        Label(screenshot.timestamp.formatted(), systemImage: "photo")
+                        Label(screenshot.displayName, systemImage: "photo")
                     }
                 }
             }
@@ -47,6 +47,7 @@ struct ContentView: View {
                         ToolbarItem(placement: .destructiveAction) {
                             Button(action: deleteSelectedScreenshot) {
                                 Label("Delete", systemImage: "trash")
+                                    .foregroundColor(.red)
                             }
                             .foregroundColor(.red)
                         }
@@ -65,9 +66,22 @@ struct ContentView: View {
         }
         .onAppear {
             ScreenCapturer.checkScreenCapturePermission()
+            DispatchQueue.main.async {
+                updateWindowTitle()
+            }
         }
         .onChange(of: selectedScreenshot) { _, _ in
             showingMainView = false
+            DispatchQueue.main.async {
+                updateWindowTitle()
+            }
+        }
+        .onChange(of: showingMainView) { _, newValue in
+            if newValue {
+                DispatchQueue.main.async {
+                    NSApp.mainWindow?.title = "MultiScreen Capturer"
+                }
+            }
         }
     }
     
@@ -80,9 +94,6 @@ struct ContentView: View {
                 Text("Capture All Screens")
                     .font(.headline)
                     .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
             }
             .disabled(isCapturing)
         }
@@ -104,14 +115,18 @@ struct ContentView: View {
     }
     
     private func performCapture() {
+        let shouldRestoreWindow = hideWindowBeforeCapture
+        
         if let screenshot = ScreenCapturer.captureAllScreens(),
            let saved = ScreenCapturer.saveToSandbox(screenshot, context: modelContext) {
             selectedScreenshot = saved
             showingMainView = false
         }
         
-        if hideWindowBeforeCapture {
-            NSApp.mainWindow?.makeKeyAndOrderFront(nil)
+        if shouldRestoreWindow {
+            DispatchQueue.main.async {
+                NSApp.mainWindow?.makeKeyAndOrderFront(nil)
+            }
         }
         
         isCapturing = false
@@ -122,7 +137,9 @@ struct ContentView: View {
               let image = ScreenCapturer.loadImage(from: screenshot.filepath) else { return }
         
         let picker = NSSharingServicePicker(items: [image])
-        picker.show(relativeTo: .zero, of: NSApp.windows.first?.contentView as! NSView, preferredEdge: .minY)
+        if let contentView = NSApp.windows.first?.contentView {
+            picker.show(relativeTo: .zero, of: contentView, preferredEdge: .minY)
+        }
     }
     
     private func saveScreenshot() {
@@ -136,26 +153,25 @@ struct ContentView: View {
         if let screenshot = selectedScreenshot,
            let currentIndex = screenshots.firstIndex(where: { $0.id == screenshot.id }) {
             
-            // 确定下一个要选择的截图
-            let nextScreenshot: Screenshot?
-            if currentIndex + 1 < screenshots.count {
-                // 有更老的图片，选择它
-                nextScreenshot = screenshots[currentIndex + 1]
-            } else if currentIndex > 0 {
-                // 没有更老的，但有更新的图片
-                nextScreenshot = screenshots[currentIndex - 1]
-            } else {
-                // 这是唯一的图片
-                nextScreenshot = nil
-            }
+            // Choose the next screenshot to show
+            let nextScreenshot = (currentIndex + 1 < screenshots.count) ? screenshots[currentIndex + 1] : (currentIndex > 0 ? screenshots[currentIndex - 1] : nil)
             
-            // 删除当前截图
+            // Delete the screenshot
             try? FileManager.default.removeItem(atPath: screenshot.filepath)
             modelContext.delete(screenshot)
             
-            // 更新选择
+            // Update the UI
             selectedScreenshot = nextScreenshot
             showingMainView = nextScreenshot == nil
+        }
+    }
+    
+    private func updateWindowTitle() {
+        if let screenshot = selectedScreenshot,
+           let window = NSApp.mainWindow {
+            window.title = "MultiScreen Capturer (\(screenshot.displayName))"
+        } else if let window = NSApp.mainWindow {
+            window.title = "MultiScreen Capturer"
         }
     }
 }

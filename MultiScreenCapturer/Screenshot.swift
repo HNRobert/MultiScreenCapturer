@@ -12,4 +12,10 @@ final class Screenshot {
         self.timestamp = timestamp
         self.filepath = filepath
     }
+    
+    var displayName: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        return formatter.string(from: timestamp)
+    }
 }
