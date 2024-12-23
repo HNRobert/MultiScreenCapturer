@@ -2,6 +2,14 @@ import AppKit
 import Foundation
 import SwiftData
 
+struct CaptureSettings {
+    let cornerStyle: ScreenCornerStyle
+    let cornerRadius: Double
+    let screenSpacing: Int
+    let enableShadow: Bool
+    let resolutionStyle: ResolutionStyle
+}
+
 class ScreenCapturer {
     static func checkScreenCapturePermission() {
         let checkOptionPrompt = true
@@ -30,17 +38,50 @@ class ScreenCapturer {
         }
     }
 
-    static func captureAllScreens() -> NSImage? {
+    static func getResolutionScale(for style: ResolutionStyle, screens: [NSScreen]) -> CGFloat {
+        switch style {
+        case ._1080p:
+            return 1080.0 / screens[0].frame.height
+        case ._2k:
+            return 1440.0 / screens[0].frame.height
+        case ._4k:
+            return 2160.0 / screens[0].frame.height
+        case .highestDPI:
+            return screens.map { $0.backingScaleFactor }.max() ?? 1.0
+        }
+    }
+    
+    static func shouldApplyCornersRadius(for screen: NSScreen, style: ScreenCornerStyle) -> (apply: Bool, topOnly: Bool) {
+        switch style {
+        case .none:
+            return (false, false)
+        case .mainOnly:
+            return (screen == NSScreen.main, false)
+        case .builtInOnly:
+            return (screen.localizedName.contains("Built-in"), false)
+        case .builtInTopOnly:
+            return (screen.localizedName.contains("Built-in"), true)
+        case .all:
+            return (true, false)
+        }
+    }
+
+    static func captureAllScreens(with settings: CaptureSettings = .init(
+        cornerStyle: .none,
+        cornerRadius: 35,
+        screenSpacing: 10,
+        enableShadow: true,
+        resolutionStyle: .highestDPI
+    )) -> NSImage? {
         if !CGPreflightScreenCaptureAccess() {
             checkScreenCapturePermission()
             return nil
         }
 
         let screens = NSScreen.screens
+        let scale = getResolutionScale(for: settings.resolutionStyle, screens: screens)
 
-        // 找出最高的缩放因子（DPI）
-        let maxScale = screens.map { $0.backingScaleFactor }.max() ?? 1.0
-
+        // Calculate total frame with spacing
         var minX: CGFloat = .infinity
         var minY: CGFloat = .infinity
         var maxX: CGFloat = -.infinity
@@ -54,30 +95,25 @@ class ScreenCapturer {
             maxY = max(maxY, frame.maxY)
         }
 
-        let totalFrame = CGRect(
+        let spacing = CGFloat(settings.screenSpacing)
+        let totalFrame = NSRect(
             x: 0, y: 0,
-            width: maxX - minX,
-            height: maxY - minY)
+            width: (maxX - minX + spacing) * scale,
+            height: (maxY - minY + spacing) * scale
+        )
 
-        // 使用最高DPI计算实际像素尺寸
-        let pixelWidth = Int(totalFrame.width * maxScale)
-        let pixelHeight = Int(totalFrame.height * maxScale)
-
-        guard
-            let bitmapRep = NSBitmapImageRep(
-                bitmapDataPlanes: nil,
-                pixelsWide: pixelWidth,
-                pixelsHigh: pixelHeight,
-                bitsPerSample: 8,
-                samplesPerPixel: 4,
-                hasAlpha: true,
-                isPlanar: false,
-                colorSpaceName: .deviceRGB,
-                bytesPerRow: 0,
-                bitsPerPixel: 0)
-        else {
-            return nil
-        }
+        guard let bitmapRep = NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: Int(totalFrame.width),
+            pixelsHigh: Int(totalFrame.height),
+            bitsPerSample: 8,
+            samplesPerPixel: 4,
+            hasAlpha: true,
+            isPlanar: false,
+            colorSpaceName: .deviceRGB,
+            bytesPerRow: 0,
+            bitsPerPixel: 0
+        ) else { return nil }
 
         NSGraphicsContext.saveGraphicsState()
         let context = NSGraphicsContext(bitmapImageRep: bitmapRep)
@@ -85,20 +121,63 @@ class ScreenCapturer {
         NSGraphicsContext.current = context
 
         for screen in screens {
-            if let displayId = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")]
-                as? CGDirectDisplayID
-            {
+            if let displayId = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID,
+               let screenShot = CGDisplayCreateImage(displayId) {
                 let frame = screen.frame
-                let relativeFrame = CGRect(
-                    x: (frame.origin.x - minX) * maxScale,
-                    y: (frame.origin.y - minY) * maxScale,
-                    width: frame.width * maxScale,
-                    height: frame.height * maxScale
+                var relativeFrame = CGRect(
+                    x: (frame.origin.x - minX + spacing) * scale,
+                    y: (frame.origin.y - minY + spacing) * scale,
+                    width: frame.width * scale,
+                    height: frame.height * scale
                 )
 
-                if let screenShot = CGDisplayCreateImage(displayId) {
-                    let nsImage = NSImage(cgImage: screenShot, size: frame.size)
-                    nsImage.draw(in: relativeFrame)
+                let nsImage = NSImage(cgImage: screenShot, size: frame.size)
+
+                if settings.enableShadow {
+                    let shadow = NSShadow()
+                    shadow.shadowColor = NSColor.black.withAlphaComponent(0.4)
+                    shadow.shadowOffset = NSSize(width: 0, height: 5)
+                    shadow.shadowBlurRadius = 20
+                    shadow.set()
+                }
+
+                let cornerSettings = shouldApplyCornersRadius(for: screen, style: settings.cornerStyle)
+                if cornerSettings.apply {
+                    if cornerSettings.topOnly {
+                        // Top corners only
+                        let path = NSBezierPath()
+                        let radius = CGFloat(settings.cornerRadius)
+                        path.move(to: NSPoint(x: relativeFrame.minX, y: relativeFrame.minY))
+                        path.line(to: NSPoint(x: relativeFrame.minX, y: relativeFrame.maxY - radius))
+                        path.appendArc(withCenter: NSPoint(x: relativeFrame.minX + radius, y: relativeFrame.maxY - radius),
+                                     radius: radius,
+                                     startAngle: 180,
+                                     endAngle: 90,
+                                     clockwise: true)
+                        path.line(to: NSPoint(x: relativeFrame.maxX - radius, y: relativeFrame.maxY))
+                        path.appendArc(withCenter: NSPoint(x: relativeFrame.maxX - radius, y: relativeFrame.maxY - radius),
+                                     radius: radius,
+                                     startAngle: 90,
+                                     endAngle: 0,
+                                     clockwise: true)
+                        path.line(to: NSPoint(x: relativeFrame.maxX, y: relativeFrame.minY))
+                        path.close()
+                        NSGraphicsContext.current?.saveGraphicsState()
+                        path.addClip()
+                    } else {
+                        // All corners
+                        let path = NSBezierPath(roundedRect: relativeFrame,
+                                              xRadius: CGFloat(settings.cornerRadius),
+                                              yRadius: CGFloat(settings.cornerRadius))
+                        NSGraphicsContext.current?.saveGraphicsState()
+                        path.addClip()
+                    }
+                }
+
+                nsImage.draw(in: relativeFrame)
+
+                if cornerSettings.apply {
+                    NSGraphicsContext.current?.restoreGraphicsState()
                 }
             }
         }
@@ -162,5 +241,31 @@ class ScreenCapturer {
 
     static func loadImage(from filepath: String) -> NSImage? {
         return NSImage(contentsOfFile: filepath)
+    }
+
+    static func loadThumbnail(from filepath: String) -> NSImage? {
+        guard let originalImage = NSImage(contentsOfFile: filepath) else { return nil }
+        
+        let thumbnailSize = NSSize(width: 100, height: 100)
+        let thumbnail = NSImage(size: thumbnailSize)
+        
+        thumbnail.lockFocus()
+        NSGraphicsContext.current?.imageInterpolation = .high
+        let aspectRatio = originalImage.size.width / originalImage.size.height
+        let targetRect: NSRect
+        if aspectRatio > 1 {
+            let newHeight = thumbnailSize.width / aspectRatio
+            targetRect = NSRect(x: 0, y: (thumbnailSize.height - newHeight) / 2, width: thumbnailSize.width, height: newHeight)
+        } else {
+            let newWidth = thumbnailSize.height * aspectRatio
+            targetRect = NSRect(x: (thumbnailSize.width - newWidth) / 2, y: 0, width: newWidth, height: thumbnailSize.height)
+        }
+        originalImage.draw(in: targetRect,
+                 from: NSRect(origin: .zero, size: originalImage.size),
+                 operation: .copy,
+                 fraction: 1.0)
+        thumbnail.unlockFocus()
+        
+        return thumbnail
     }
 }

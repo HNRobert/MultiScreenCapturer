@@ -17,23 +17,73 @@ struct ContentView: View {
     @State private var selectedScreenshot: Screenshot?
     @State private var showingMainView = true
     
+    @AppStorage("cornerStyle") private var cornerStyle = ScreenCornerStyle.none
+    @AppStorage("screenSpacing") private var screenSpacing: Double = 10
+    @AppStorage("enableShadow") private var enableShadow = true
+    @AppStorage("resolutionStyle") private var resolutionStyle = ResolutionStyle.highestDPI
+    @AppStorage("cornerRadius") private var cornerRadius: Double = 30
+    
     var body: some View {
         NavigationSplitView {
-            List(selection: $selectedScreenshot) {
-                ForEach(screenshots) { screenshot in
-                    NavigationLink(value: screenshot) {
-                        Label(screenshot.displayName, systemImage: "photo")
-                    }
-                }
-            }
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button(action: captureScreens) {
-                        Label("New Screenshot", systemImage: "plus")
-                    }
-                }
-            }
+            screenshotListView
         } detail: {
+            detailView
+        }
+        .onAppear {
+            ScreenCapturer.checkScreenCapturePermission()
+            DispatchQueue.main.async {
+                updateWindowTitle()
+            }
+        }
+        .onChange(of: selectedScreenshot) { _, _ in
+            showingMainView = false
+            DispatchQueue.main.async {
+                updateWindowTitle()
+            }
+        }
+        .onChange(of: showingMainView) { _, newValue in
+            if newValue {
+                DispatchQueue.main.async {
+                    NSApp.mainWindow?.title = "MultiScreen Capturer"
+                }
+            }
+        }
+    }
+    
+    private var screenshotListView: some View {
+        List(selection: $selectedScreenshot) {
+            ForEach(screenshots) { screenshot in
+                NavigationLink(value: screenshot) {
+                    VStack(spacing: 8) {
+                        if let thumbnail = ScreenCapturer.loadThumbnail(from: screenshot.filepath) {
+                            GeometryReader { geometry in
+                                Image(nsImage: thumbnail)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(maxWidth: geometry.size.width - 20) // 左右留出10px边距
+                                    .frame(maxHeight: 120) // 限制最大高度
+                                    .cornerRadius(5)
+                            }
+                            .frame(height: 120) // 固定高度确保一致性
+                        }
+                        Text(screenshot.displayName)
+                            .font(.caption)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: captureScreens) {
+                    Label("New Screenshot", systemImage: "plus")
+                }
+            }
+        }
+    }
+    
+    private var detailView: some View {
+        Group {
             if showingMainView {
                 mainView
             } else if let screenshot = selectedScreenshot {
@@ -64,40 +114,66 @@ struct ContentView: View {
                     }
             }
         }
-        .onAppear {
-            ScreenCapturer.checkScreenCapturePermission()
-            DispatchQueue.main.async {
-                updateWindowTitle()
-            }
-        }
-        .onChange(of: selectedScreenshot) { _, _ in
-            showingMainView = false
-            DispatchQueue.main.async {
-                updateWindowTitle()
-            }
-        }
-        .onChange(of: showingMainView) { _, newValue in
-            if newValue {
-                DispatchQueue.main.async {
-                    NSApp.mainWindow?.title = "MultiScreen Capturer"
-                }
-            }
-        }
     }
     
     private var mainView: some View {
         VStack(spacing: 20) {
-            Toggle("Hide window before capture", isOn: $hideWindowBeforeCapture)
-                .padding()
+            GroupBox("Capture Settings") {
+                VStack(alignment: .leading, spacing: 12) {
+                    Toggle("Hide window before capture", isOn: $hideWindowBeforeCapture)
+                    
+                    Toggle("Enable Screen Shadow", isOn: $enableShadow)
+                    
+                    HStack {
+                        Text("Screen Spacing")
+                        TextField("Pixels", value: $screenSpacing, format: .number)
+                            .frame(width: 80)
+                        Text("px")
+                    }
+                    
+                    Picker("Screen Corners", selection: $cornerStyle) {
+                        ForEach([ScreenCornerStyle.none,
+                                .mainOnly,
+                                .builtInOnly,
+                                .builtInTopOnly,
+                                .all], id: \.self) { style in
+                            Text(style.rawValue).tag(style)
+                        }
+                    }
+                    
+                    if cornerStyle != .none {
+                        HStack {
+                            Text("Corner Radius")
+                            TextField("Pixels", value: $cornerRadius, format: .number)
+                                .frame(width: 80)
+                            Text("px")
+                        }
+                    }
+                    
+                    Picker("Resolution", selection: $resolutionStyle) {
+                        ForEach([ResolutionStyle._1080p,
+                                ._2k,
+                                ._4k,
+                                .highestDPI], id: \.self) { style in
+                            Text(style.rawValue).tag(style)
+                        }
+                    }
+                }
+                .padding(.vertical, 8)
+            }
+            .padding()
             
             Button(action: captureScreens) {
                 Text("Capture All Screens")
                     .font(.headline)
                     .padding()
+                    .frame(maxWidth: .infinity)
+                    .cornerRadius(10)
             }
             .disabled(isCapturing)
+            .buttonStyle(.borderedProminent)
         }
-        .frame(width: 300, height: 150)
+        .frame(width: 400)
         .padding()
     }
     
@@ -117,7 +193,15 @@ struct ContentView: View {
     private func performCapture() {
         let shouldRestoreWindow = hideWindowBeforeCapture
         
-        if let screenshot = ScreenCapturer.captureAllScreens(),
+        let settings = CaptureSettings(
+            cornerStyle: cornerStyle,
+            cornerRadius: cornerRadius,
+            screenSpacing: Int(screenSpacing),
+            enableShadow: enableShadow,
+            resolutionStyle: resolutionStyle
+        )
+        
+        if let screenshot = ScreenCapturer.captureAllScreens(with: settings),
            let saved = ScreenCapturer.saveToSandbox(screenshot, context: modelContext) {
             selectedScreenshot = saved
             showingMainView = false
