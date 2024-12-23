@@ -38,6 +38,9 @@ class ScreenCapturer {
 
         let screens = NSScreen.screens
 
+        // 找出最高的缩放因子（DPI）
+        let maxScale = screens.map { $0.backingScaleFactor }.max() ?? 1.0
+
         var minX: CGFloat = .infinity
         var minY: CGFloat = .infinity
         var maxX: CGFloat = -.infinity
@@ -56,11 +59,15 @@ class ScreenCapturer {
             width: maxX - minX,
             height: maxY - minY)
 
+        // 使用最高DPI计算实际像素尺寸
+        let pixelWidth = Int(totalFrame.width * maxScale)
+        let pixelHeight = Int(totalFrame.height * maxScale)
+
         guard
             let bitmapRep = NSBitmapImageRep(
                 bitmapDataPlanes: nil,
-                pixelsWide: Int(totalFrame.width),
-                pixelsHigh: Int(totalFrame.height),
+                pixelsWide: pixelWidth,
+                pixelsHigh: pixelHeight,
                 bitsPerSample: 8,
                 samplesPerPixel: 4,
                 hasAlpha: true,
@@ -73,7 +80,9 @@ class ScreenCapturer {
         }
 
         NSGraphicsContext.saveGraphicsState()
-        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmapRep)
+        let context = NSGraphicsContext(bitmapImageRep: bitmapRep)
+        context?.imageInterpolation = .high
+        NSGraphicsContext.current = context
 
         for screen in screens {
             if let displayId = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")]
@@ -81,10 +90,10 @@ class ScreenCapturer {
             {
                 let frame = screen.frame
                 let relativeFrame = CGRect(
-                    x: frame.origin.x - minX,
-                    y: frame.origin.y - minY,
-                    width: frame.width,
-                    height: frame.height
+                    x: (frame.origin.x - minX) * maxScale,
+                    y: (frame.origin.y - minY) * maxScale,
+                    width: frame.width * maxScale,
+                    height: frame.height * maxScale
                 )
 
                 if let screenShot = CGDisplayCreateImage(displayId) {
