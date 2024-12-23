@@ -22,10 +22,14 @@ struct ContentView: View {
     @AppStorage("enableShadow") private var enableShadow = true
     @AppStorage("resolutionStyle") private var resolutionStyle = ResolutionStyle.highestDPI
     @AppStorage("cornerRadius") private var cornerRadius: Double = 30
+    @AppStorage("copyToClipboard") private var copyToClipboard = false
+    @AppStorage("autoSaveEnabled") private var autoSaveEnabled = false
+    @AppStorage("autoSavePath") private var autoSavePath = ""
     
     var body: some View {
         NavigationSplitView {
             screenshotListView
+                .frame(minWidth: 180)
         } detail: {
             detailView
         }
@@ -60,11 +64,11 @@ struct ContentView: View {
                                 Image(nsImage: thumbnail)
                                     .resizable()
                                     .aspectRatio(contentMode: .fit)
-                                    .frame(maxWidth: geometry.size.width - 20) // 左右留出10px边距
-                                    .frame(maxHeight: 120) // 限制最大高度
+                                    .frame(maxWidth: geometry.size.width - 20)
+                                    .frame(maxHeight: 120)
                                     .cornerRadius(5)
                             }
-                            .frame(height: 120) // 固定高度确保一致性
+                            .frame(height: 120)
                         }
                         Text(screenshot.displayName)
                             .font(.caption)
@@ -102,13 +106,13 @@ struct ContentView: View {
                             .foregroundColor(.red)
                         }
                         ToolbarItem(placement: .primaryAction) {
-                            Button(action: shareScreenshot) {
-                                Label("Share", systemImage: "square.and.arrow.up")
+                            Button(action: saveScreenshot) {
+                                Label("Save", systemImage: "square.and.arrow.down")
                             }
                         }
                         ToolbarItem(placement: .primaryAction) {
-                            Button(action: saveScreenshot) {
-                                Label("Save", systemImage: "square.and.arrow.down")
+                            Button(action: shareScreenshot) {
+                                Label("Share", systemImage: "square.and.arrow.up")
                             }
                         }
                     }
@@ -117,64 +121,110 @@ struct ContentView: View {
     }
     
     private var mainView: some View {
-        VStack(spacing: 20) {
-            GroupBox("Capture Settings") {
-                VStack(alignment: .leading, spacing: 12) {
-                    Toggle("Hide window before capture", isOn: $hideWindowBeforeCapture)
-                    
-                    Toggle("Enable Screen Shadow", isOn: $enableShadow)
-                    
-                    HStack {
-                        Text("Screen Spacing")
-                        TextField("Pixels", value: $screenSpacing, format: .number)
-                            .frame(width: 80)
-                        Text("px")
-                    }
-                    
-                    Picker("Screen Corners", selection: $cornerStyle) {
-                        ForEach([ScreenCornerStyle.none,
-                                .mainOnly,
-                                .builtInOnly,
-                                .builtInTopOnly,
-                                .all], id: \.self) { style in
-                            Text(style.rawValue).tag(style)
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // 使用相同的padding包装两个GroupBox
+                    VStack(spacing: 20) {
+                        GroupBox("Capture Settings") {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Toggle("Hide window before capture", isOn: $hideWindowBeforeCapture)
+                                
+                                Toggle("Enable Screen Shadow", isOn: $enableShadow)
+                                
+                                HStack {
+                                    Text("Screen Spacing")
+                                    TextField("Pixels", value: $screenSpacing, format: .number)
+                                        .frame(width: 80)
+                                    Text("px")
+                                }
+                                
+                                Picker("Screen Corners", selection: $cornerStyle) {
+                                    ForEach([ScreenCornerStyle.none,
+                                            .mainOnly,
+                                            .builtInOnly,
+                                            .builtInTopOnly,
+                                            .all], id: \.self) { style in
+                                        Text(style.rawValue).tag(style)
+                                    }
+                                }
+                                
+                                if cornerStyle != .none {
+                                    HStack {
+                                        Text("Corner Radius")
+                                        TextField("Pixels", value: $cornerRadius, format: .number)
+                                            .frame(width: 80)
+                                        Text("px")
+                                    }
+                                }
+                                
+                                Picker("Resolution", selection: $resolutionStyle) {
+                                    ForEach([ResolutionStyle._1080p,
+                                            ._2k,
+                                            ._4k,
+                                            .highestDPI], id: \.self) { style in
+                                        Text(style.rawValue).tag(style)
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
                         }
-                    }
-                    
-                    if cornerStyle != .none {
-                        HStack {
-                            Text("Corner Radius")
-                            TextField("Pixels", value: $cornerRadius, format: .number)
-                                .frame(width: 80)
-                            Text("px")
+                        .frame(maxWidth: .infinity)
+                        
+                        GroupBox("Save Settings") {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Toggle("Copy to Clipboard after Capture", isOn: $copyToClipboard)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                                Toggle("Auto Save to Path", isOn: $autoSaveEnabled)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                
+                                if autoSaveEnabled {
+                                    HStack(spacing: 8) {
+                                        TextField("Save Path", text: $autoSavePath)
+                                        Button("Browse") {
+                                            selectSavePath()
+                                        }
+                                        .frame(width: 80)
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
                         }
-                    }
-                    
-                    Picker("Resolution", selection: $resolutionStyle) {
-                        ForEach([ResolutionStyle._1080p,
-                                ._2k,
-                                ._4k,
-                                .highestDPI], id: \.self) { style in
-                            Text(style.rawValue).tag(style)
-                        }
+                        .frame(maxWidth: .infinity)
                     }
                 }
-                .padding(.vertical, 8)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
             }
-            .padding()
+            .frame(maxHeight: .infinity)
             
             Button(action: captureScreens) {
                 Text("Capture All Screens")
                     .font(.headline)
-                    .padding()
+                    .padding(.vertical, 12)
                     .frame(maxWidth: .infinity)
-                    .cornerRadius(10)
             }
             .disabled(isCapturing)
             .buttonStyle(.borderedProminent)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
         }
-        .frame(width: 400)
-        .padding()
+        .frame(minWidth: 440, maxWidth: .infinity)
+        .scrollIndicators(.visible)
+    }
+    
+    private func selectSavePath() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        
+        if panel.runModal() == .OK {
+            autoSavePath = panel.url?.path ?? ""
+        }
     }
     
     private func captureScreens() {
@@ -198,11 +248,22 @@ struct ContentView: View {
             cornerRadius: cornerRadius,
             screenSpacing: Int(screenSpacing),
             enableShadow: enableShadow,
-            resolutionStyle: resolutionStyle
+            resolutionStyle: resolutionStyle,
+            copyToClipboard: copyToClipboard,
+            autoSaveToPath: autoSaveEnabled ? autoSavePath : nil
         )
         
         if let screenshot = ScreenCapturer.captureAllScreens(with: settings),
            let saved = ScreenCapturer.saveToSandbox(screenshot, context: modelContext) {
+            
+            if settings.copyToClipboard {
+                ScreenCapturer.copyToClipboard(screenshot)
+            }
+            
+            if let path = settings.autoSaveToPath {
+                ScreenCapturer.saveToPath(screenshot, path: path)
+            }
+            
             selectedScreenshot = saved
             showingMainView = false
         }

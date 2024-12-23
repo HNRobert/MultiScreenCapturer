@@ -8,6 +8,8 @@ struct CaptureSettings {
     let screenSpacing: Int
     let enableShadow: Bool
     let resolutionStyle: ResolutionStyle
+    let copyToClipboard: Bool
+    let autoSaveToPath: String?
 }
 
 class ScreenCapturer {
@@ -66,12 +68,23 @@ class ScreenCapturer {
         }
     }
 
+    private static let macOSWindowShadow: NSShadow = {
+        let shadow = NSShadow()
+        // Simulate macOS window shadow
+        shadow.shadowColor = NSColor.black.withAlphaComponent(0.3)
+        shadow.shadowOffset = NSSize(width: 0, height: -3)
+        shadow.shadowBlurRadius = 12
+        return shadow
+    }()
+    
     static func captureAllScreens(with settings: CaptureSettings = .init(
         cornerStyle: .none,
         cornerRadius: 35,
         screenSpacing: 10,
         enableShadow: true,
-        resolutionStyle: .highestDPI
+        resolutionStyle: .highestDPI,
+        copyToClipboard: false,
+        autoSaveToPath: nil
     )) -> NSImage? {
         if !CGPreflightScreenCaptureAccess() {
             checkScreenCapturePermission()
@@ -134,11 +147,8 @@ class ScreenCapturer {
                 let nsImage = NSImage(cgImage: screenShot, size: frame.size)
 
                 if settings.enableShadow {
-                    let shadow = NSShadow()
-                    shadow.shadowColor = NSColor.black.withAlphaComponent(0.4)
-                    shadow.shadowOffset = NSSize(width: 0, height: 5)
-                    shadow.shadowBlurRadius = 20
-                    shadow.set()
+                    NSGraphicsContext.current?.saveGraphicsState()
+                    macOSWindowShadow.set()
                 }
 
                 let cornerSettings = shouldApplyCornersRadius(for: screen, style: settings.cornerStyle)
@@ -176,7 +186,9 @@ class ScreenCapturer {
 
                 nsImage.draw(in: relativeFrame)
 
-                if cornerSettings.apply {
+                if settings.enableShadow {
+                    NSGraphicsContext.current?.restoreGraphicsState()
+                } else if cornerSettings.apply {
                     NSGraphicsContext.current?.restoreGraphicsState()
                 }
             }
@@ -186,6 +198,14 @@ class ScreenCapturer {
 
         let finalImage = NSImage(size: totalFrame.size)
         finalImage.addRepresentation(bitmapRep)
+
+        if settings.copyToClipboard {
+            copyToClipboard(finalImage)
+        }
+
+        if let path = settings.autoSaveToPath {
+            saveToPath(finalImage, path: path)
+        }
 
         return finalImage
     }
@@ -267,5 +287,20 @@ class ScreenCapturer {
         thumbnail.unlockFocus()
         
         return thumbnail
+    }
+
+    static func copyToClipboard(_ image: NSImage) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.writeObjects([image])
+    }
+    
+    static func saveToPath(_ image: NSImage, path: String) {
+        if let tiffData = image.tiffRepresentation,
+           let bitmapImage = NSBitmapImageRep(data: tiffData),
+           let pngData = bitmapImage.representation(using: .png, properties: [:]) {
+            let url = URL(fileURLWithPath: path)
+                .appendingPathComponent("screenshot-\(Date().timeIntervalSince1970).png")
+            try? pngData.write(to: url)
+        }
     }
 }
