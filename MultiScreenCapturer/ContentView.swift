@@ -10,14 +10,12 @@ import SwiftData
 
 struct ContentView: View {
     @State private var screenshots: [Screenshot] = []
-    
     @State private var hideWindowBeforeCapture = false
     @State private var isCapturing = false
     @State private var selectedScreenshot: Screenshot?
     @State private var showingMainView = true
     @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
     @State private var isDeletingScreenshot = false
-    @State private var isChangingView = false
     @State private var captureLoadingOpacity: Double = 0
     @State private var newScreenshotID: UUID?
     @State private var processingCapture = false
@@ -35,254 +33,62 @@ struct ContentView: View {
     
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
-            screenshotListView
-                .frame(minWidth: 180)
+            ScreenshotListView(
+                screenshots: screenshots,
+                selectedScreenshot: $selectedScreenshot,
+                newScreenshotID: newScreenshotID,
+                captureLoadingOpacity: captureLoadingOpacity,
+                processingCapture: processingCapture,
+                onCaptureButtonTapped: captureScreens
+            )
+            .frame(minWidth: 180)
         } detail: {
-            detailView
+            DetailView(
+                showingMainView: $showingMainView,
+                selectedScreenshot: $selectedScreenshot,
+                hideWindowBeforeCapture: $hideWindowBeforeCapture,
+                isCapturing: $isCapturing,
+                isDeletingScreenshot: isDeletingScreenshot,
+                onHomeButtonTapped: { showingMainView = true },
+                onDeleteButtonTapped: deleteSelectedScreenshot,
+                onSaveButtonTapped: saveScreenshot,
+                onShareButtonTapped: shareScreenshot,
+                onCaptureButtonTapped: captureScreens
+            )
         }
-        .onAppear {
-            ScreenCapturer.checkScreenCapturePermission()
-            loadScreenshots()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                updateWindowTitle()
-            }
-        }
-        .onChange(of: selectedScreenshot) { _, _ in
-            withAnimation {
-                showingMainView = false
-            }
-            DispatchQueue.main.async {
-                updateWindowTitle()
-            }
-        }
-        .onChange(of: showingMainView) { _, newValue in
-            if newValue {
-                DispatchQueue.main.async {
-                    updateWindowTitle()
-                }
-            }
-        }
+        .onAppear(perform: setupView)
+        .onChange(of: selectedScreenshot, perform: handleScreenshotSelection)
+        .onChange(of: showingMainView, perform: handleMainViewChange)
         .onChange(of: columnVisibility) { _, _ in
             updateWindowTitle()
         }
     }
     
-    private struct ScreenshotRow: View {
-        let screenshot: Screenshot
-        let newScreenshotID: UUID?
-        let captureLoadingOpacity: Double
-        
-        var body: some View {
-            NavigationLink(value: screenshot) {
-                VStack(spacing: 8) {
-                    if let thumbnail = ScreenCapturer.loadThumbnail(from: screenshot.filepath) {
-                        GeometryReader { geometry in
-                            Image(nsImage: thumbnail)
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(maxWidth: geometry.size.width - 20)
-                                .frame(maxHeight: 120)
-                                .cornerRadius(5)
-                        }
-                        .frame(height: 120)
-                        .opacity(screenshot.id == newScreenshotID ? captureLoadingOpacity : 1)
-                    }
-                    Text(screenshot.displayName)
-                        .font(.caption)
-                }
-                .padding(.vertical, 4)
-            }
-            .id(screenshot.id)
-            .transition(.asymmetric(
-                insertion: .move(edge: .top).combined(with: .opacity),
-                removal: .opacity
-            ))
+    private func setupView() {
+        ScreenCapturer.checkScreenCapturePermission()
+        loadScreenshots()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            updateWindowTitle()
         }
     }
     
-    private var captureButton: some View {
-        Button(action: captureScreens) {
-            if processingCapture {
-                ProgressView()
-                    .controlSize(.small)
-                    .scaleEffect(0.8)
-            } else {
-                Label("New Screenshot", systemImage: "plus")
-            }
+    private func handleScreenshotSelection(_ screenshot: Screenshot?) {
+        withAnimation {
+            showingMainView = false
         }
-        .disabled(processingCapture)
-    }
-    
-    private var screenshotListView: some View {
-        ScrollViewReader { proxy in
-            List(selection: $selectedScreenshot) {
-                ForEach(screenshots) { screenshot in
-                    ScreenshotRow(
-                        screenshot: screenshot,
-                        newScreenshotID: newScreenshotID,
-                        captureLoadingOpacity: captureLoadingOpacity
-                    )
-                }
-            }
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    captureButton
-                }
-            }
-            .onChange(of: newScreenshotID) { _, id in
-                if let id = id {
-                    withAnimation(.easeOut(duration: 0.3)) {
-                        proxy.scrollTo(id, anchor: .top)
-                    }
-                }
-            }
+        DispatchQueue.main.async {
+            updateWindowTitle()
         }
     }
     
-    private var detailView: some View {
-        Group {
-            if showingMainView {
-                mainView
-                    .transition(.opacity)
-            } else if let screenshot = selectedScreenshot {
-                ScreenshotPreviewView(screenshot: screenshot)
-                    .transition(.opacity)
-                    .toolbar {
-                        ToolbarItem(placement: .navigation) {
-                            Button(action: { showingMainView = true }) {
-                                Label("Main Page", systemImage: "house")
-                            }
-                        }
-                        ToolbarItem(placement: .destructiveAction) {
-                            Button(action: deleteSelectedScreenshot) {
-                                if isDeletingScreenshot {
-                                    ProgressView()
-                                        .controlSize(.small)
-                                } else {
-                                    Label("Delete", systemImage: "trash")
-                                        .foregroundColor(.red)
-                                }
-                            }
-                            .disabled(isDeletingScreenshot)
-                        }
-                        ToolbarItem(placement: .primaryAction) {
-                            Button(action: saveScreenshot) {
-                                Label("Save", systemImage: "square.and.arrow.down")
-                            }
-                        }
-                        ToolbarItem(placement: .primaryAction) {
-                            Button(action: shareScreenshot) {
-                                Label("Share", systemImage: "square.and.arrow.up")
-                            }
-                        }
-                    }
+    private func handleMainViewChange(_ newValue: Bool) {
+        if newValue {
+            DispatchQueue.main.async {
+                updateWindowTitle()
             }
         }
-        .animation(.easeInOut, value: showingMainView)
     }
-    
-    private var cornerStyleOptions: [ScreenCornerStyle] {
-        [.none, .mainOnly, .builtInOnly, .builtInTopOnly, .all]
-    }
-    
-    private var resolutionStyleOptions: [ResolutionStyle] {
-        [._1080p, ._2k, ._4k, .highestDPI]
-    }
-    
-    private var captureSettingsGroup: some View {
-        GroupBox("Capture Settings") {
-            VStack(alignment: .leading, spacing: 12) {
-                Toggle("Hide window before capture", isOn: $hideWindowBeforeCapture)
-                Toggle("Enable Screen Shadow", isOn: $enableShadow)
-                
-                HStack {
-                    Text("Screen Spacing")
-                    TextField("Pixels", value: $screenSpacing, format: .number)
-                        .frame(width: 80)
-                    Text("px")
-                }
-                
-                Picker("Screen Corners", selection: $cornerStyle) {
-                    ForEach(cornerStyleOptions, id: \.self) { style in
-                        Text(style.rawValue).tag(style)
-                    }
-                }
-                
-                if cornerStyle != .none {
-                    HStack {
-                        Text("Corner Radius")
-                        TextField("Pixels", value: $cornerRadius, format: .number)
-                            .frame(width: 80)
-                        Text("px")
-                    }
-                }
-                
-                Picker("Resolution", selection: $resolutionStyle) {
-                    ForEach(resolutionStyleOptions, id: \.self) { style in
-                        Text(style.rawValue).tag(style)
-                    }
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-        }
-        .frame(maxWidth: .infinity)
-    }
-    
-    private var saveSettingsGroup: some View {
-        GroupBox("Save Settings") {
-            VStack(alignment: .leading, spacing: 12) {
-                Toggle("Copy to Clipboard after Capture", isOn: $copyToClipboard)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                
-                Toggle("Auto Save to Path", isOn: $autoSaveEnabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                
-                if autoSaveEnabled {
-                    HStack(spacing: 8) {
-                        TextField("Save Path", text: $autoSavePath)
-                        Button("Browse") {
-                            selectSavePath()
-                        }
-                        .frame(width: 80)
-                    }
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-        }
-        .frame(maxWidth: .infinity)
-    }
-    
-    private var mainView: some View {
-        VStack(spacing: 0) {
-            ScrollView {
-                VStack(spacing: 20) {
-                    VStack(spacing: 20) {
-                        captureSettingsGroup
-                        saveSettingsGroup
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 16)
-            }
-            .frame(maxHeight: .infinity)
-            
-            Button(action: captureScreens) {
-                Text("Capture All Screens")
-                    .font(.headline)
-                    .padding(.vertical, 12)
-                    .frame(maxWidth: .infinity)
-            }
-            .disabled(isCapturing)
-            .buttonStyle(.borderedProminent)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
-        }
-        .frame(minWidth: 440, maxWidth: .infinity)
-        .scrollIndicators(.visible)
-    }
-    
+
     private func selectSavePath() {
         let panel = NSOpenPanel()
         panel.canChooseFiles = false
