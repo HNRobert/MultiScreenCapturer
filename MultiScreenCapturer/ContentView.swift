@@ -9,14 +9,18 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Screenshot.timestamp, order: .reverse) private var screenshots: [Screenshot]
+    @State private var screenshots: [Screenshot] = []
     
     @State private var hideWindowBeforeCapture = false
     @State private var isCapturing = false
     @State private var selectedScreenshot: Screenshot?
     @State private var showingMainView = true
     @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
+    @State private var isDeletingScreenshot = false
+    @State private var isChangingView = false
+    @State private var captureLoadingOpacity: Double = 0
+    @State private var newScreenshotID: UUID?
+    @State private var processingCapture = false
     
     @AppStorage("cornerStyle") private var cornerStyle = ScreenCornerStyle.none
     @AppStorage("screenSpacing") private var screenSpacing: Double = 10
@@ -27,6 +31,8 @@ struct ContentView: View {
     @AppStorage("autoSaveEnabled") private var autoSaveEnabled = false
     @AppStorage("autoSavePath") private var autoSavePath = ""
     
+    @Environment(\.windowTitle) private var defaultWindowTitle
+    
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             screenshotListView
@@ -36,15 +42,24 @@ struct ContentView: View {
         }
         .onAppear {
             ScreenCapturer.checkScreenCapturePermission()
-            updateWindowTitle()
+            loadScreenshots()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                updateWindowTitle()
+            }
         }
         .onChange(of: selectedScreenshot) { _, _ in
-            showingMainView = false
-            updateWindowTitle()
+            withAnimation {
+                showingMainView = false
+            }
+            DispatchQueue.main.async {
+                updateWindowTitle()
+            }
         }
         .onChange(of: showingMainView) { _, newValue in
             if newValue {
-                updateWindowTitle()
+                DispatchQueue.main.async {
+                    updateWindowTitle()
+                }
             }
         }
         .onChange(of: columnVisibility) { _, _ in
@@ -52,33 +67,73 @@ struct ContentView: View {
         }
     }
     
-    private var screenshotListView: some View {
-        List(selection: $selectedScreenshot) {
-            ForEach(screenshots) { screenshot in
-                NavigationLink(value: screenshot) {
-                    VStack(spacing: 8) {
-                        if let thumbnail = ScreenCapturer.loadThumbnail(from: screenshot.filepath) {
-                            GeometryReader { geometry in
-                                Image(nsImage: thumbnail)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(maxWidth: geometry.size.width - 20)
-                                    .frame(maxHeight: 120)
-                                    .cornerRadius(5)
-                            }
-                            .frame(height: 120)
+    private struct ScreenshotRow: View {
+        let screenshot: Screenshot
+        let newScreenshotID: UUID?
+        let captureLoadingOpacity: Double
+        
+        var body: some View {
+            NavigationLink(value: screenshot) {
+                VStack(spacing: 8) {
+                    if let thumbnail = ScreenCapturer.loadThumbnail(from: screenshot.filepath) {
+                        GeometryReader { geometry in
+                            Image(nsImage: thumbnail)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(maxWidth: geometry.size.width - 20)
+                                .frame(maxHeight: 120)
+                                .cornerRadius(5)
                         }
-                        Text(screenshot.displayName)
-                            .font(.caption)
+                        .frame(height: 120)
+                        .opacity(screenshot.id == newScreenshotID ? captureLoadingOpacity : 1)
                     }
-                    .padding(.vertical, 4)
+                    Text(screenshot.displayName)
+                        .font(.caption)
                 }
+                .padding(.vertical, 4)
+            }
+            .id(screenshot.id)
+            .transition(.asymmetric(
+                insertion: .move(edge: .top).combined(with: .opacity),
+                removal: .opacity
+            ))
+        }
+    }
+    
+    private var captureButton: some View {
+        Button(action: captureScreens) {
+            if processingCapture {
+                ProgressView()
+                    .controlSize(.small)
+                    .scaleEffect(0.8)
+            } else {
+                Label("New Screenshot", systemImage: "plus")
             }
         }
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button(action: captureScreens) {
-                    Label("New Screenshot", systemImage: "plus")
+        .disabled(processingCapture)
+    }
+    
+    private var screenshotListView: some View {
+        ScrollViewReader { proxy in
+            List(selection: $selectedScreenshot) {
+                ForEach(screenshots) { screenshot in
+                    ScreenshotRow(
+                        screenshot: screenshot,
+                        newScreenshotID: newScreenshotID,
+                        captureLoadingOpacity: captureLoadingOpacity
+                    )
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    captureButton
+                }
+            }
+            .onChange(of: newScreenshotID) { _, id in
+                if let id = id {
+                    withAnimation(.easeOut(duration: 0.3)) {
+                        proxy.scrollTo(id, anchor: .top)
+                    }
                 }
             }
         }
@@ -88,8 +143,10 @@ struct ContentView: View {
         Group {
             if showingMainView {
                 mainView
+                    .transition(.opacity)
             } else if let screenshot = selectedScreenshot {
                 ScreenshotPreviewView(screenshot: screenshot)
+                    .transition(.opacity)
                     .toolbar {
                         ToolbarItem(placement: .navigation) {
                             Button(action: { showingMainView = true }) {
@@ -98,10 +155,15 @@ struct ContentView: View {
                         }
                         ToolbarItem(placement: .destructiveAction) {
                             Button(action: deleteSelectedScreenshot) {
-                                Label("Delete", systemImage: "trash")
-                                    .foregroundColor(.red)
+                                if isDeletingScreenshot {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                } else {
+                                    Label("Delete", systemImage: "trash")
+                                        .foregroundColor(.red)
+                                }
                             }
-                            .foregroundColor(.red)
+                            .disabled(isDeletingScreenshot)
                         }
                         ToolbarItem(placement: .primaryAction) {
                             Button(action: saveScreenshot) {
@@ -116,6 +178,80 @@ struct ContentView: View {
                     }
             }
         }
+        .animation(.easeInOut, value: showingMainView)
+    }
+    
+    private var cornerStyleOptions: [ScreenCornerStyle] {
+        [.none, .mainOnly, .builtInOnly, .builtInTopOnly, .all]
+    }
+    
+    private var resolutionStyleOptions: [ResolutionStyle] {
+        [._1080p, ._2k, ._4k, .highestDPI]
+    }
+    
+    private var captureSettingsGroup: some View {
+        GroupBox("Capture Settings") {
+            VStack(alignment: .leading, spacing: 12) {
+                Toggle("Hide window before capture", isOn: $hideWindowBeforeCapture)
+                Toggle("Enable Screen Shadow", isOn: $enableShadow)
+                
+                HStack {
+                    Text("Screen Spacing")
+                    TextField("Pixels", value: $screenSpacing, format: .number)
+                        .frame(width: 80)
+                    Text("px")
+                }
+                
+                Picker("Screen Corners", selection: $cornerStyle) {
+                    ForEach(cornerStyleOptions, id: \.self) { style in
+                        Text(style.rawValue).tag(style)
+                    }
+                }
+                
+                if cornerStyle != .none {
+                    HStack {
+                        Text("Corner Radius")
+                        TextField("Pixels", value: $cornerRadius, format: .number)
+                            .frame(width: 80)
+                        Text("px")
+                    }
+                }
+                
+                Picker("Resolution", selection: $resolutionStyle) {
+                    ForEach(resolutionStyleOptions, id: \.self) { style in
+                        Text(style.rawValue).tag(style)
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+        }
+        .frame(maxWidth: .infinity)
+    }
+    
+    private var saveSettingsGroup: some View {
+        GroupBox("Save Settings") {
+            VStack(alignment: .leading, spacing: 12) {
+                Toggle("Copy to Clipboard after Capture", isOn: $copyToClipboard)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                Toggle("Auto Save to Path", isOn: $autoSaveEnabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                if autoSaveEnabled {
+                    HStack(spacing: 8) {
+                        TextField("Save Path", text: $autoSavePath)
+                        Button("Browse") {
+                            selectSavePath()
+                        }
+                        .frame(width: 80)
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+        }
+        .frame(maxWidth: .infinity)
     }
     
     private var mainView: some View {
@@ -123,74 +259,8 @@ struct ContentView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     VStack(spacing: 20) {
-                        GroupBox("Capture Settings") {
-                            VStack(alignment: .leading, spacing: 12) {
-                                Toggle("Hide window before capture", isOn: $hideWindowBeforeCapture)
-                                
-                                Toggle("Enable Screen Shadow", isOn: $enableShadow)
-                                
-                                HStack {
-                                    Text("Screen Spacing")
-                                    TextField("Pixels", value: $screenSpacing, format: .number)
-                                        .frame(width: 80)
-                                    Text("px")
-                                }
-                                
-                                Picker("Screen Corners", selection: $cornerStyle) {
-                                    ForEach([ScreenCornerStyle.none,
-                                            .mainOnly,
-                                            .builtInOnly,
-                                            .builtInTopOnly,
-                                            .all], id: \.self) { style in
-                                        Text(style.rawValue).tag(style)
-                                    }
-                                }
-                                
-                                if cornerStyle != .none {
-                                    HStack {
-                                        Text("Corner Radius")
-                                        TextField("Pixels", value: $cornerRadius, format: .number)
-                                            .frame(width: 80)
-                                        Text("px")
-                                    }
-                                }
-                                
-                                Picker("Resolution", selection: $resolutionStyle) {
-                                    ForEach([ResolutionStyle._1080p,
-                                            ._2k,
-                                            ._4k,
-                                            .highestDPI], id: \.self) { style in
-                                        Text(style.rawValue).tag(style)
-                                    }
-                                }
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                        }
-                        .frame(maxWidth: .infinity)
-                        
-                        GroupBox("Save Settings") {
-                            VStack(alignment: .leading, spacing: 12) {
-                                Toggle("Copy to Clipboard after Capture", isOn: $copyToClipboard)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                                Toggle("Auto Save to Path", isOn: $autoSaveEnabled)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                
-                                if autoSaveEnabled {
-                                    HStack(spacing: 8) {
-                                        TextField("Save Path", text: $autoSavePath)
-                                        Button("Browse") {
-                                            selectSavePath()
-                                        }
-                                        .frame(width: 80)
-                                    }
-                                }
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                        }
-                        .frame(maxWidth: .infinity)
+                        captureSettingsGroup
+                        saveSettingsGroup
                     }
                 }
                 .padding(.horizontal, 20)
@@ -238,44 +308,79 @@ struct ContentView: View {
     }
     
     private func performCapture() {
-        let shouldRestoreWindow = hideWindowBeforeCapture
+        processingCapture = true
         
-        let settings = CaptureSettings(
-            cornerStyle: cornerStyle,
-            cornerRadius: cornerRadius,
-            screenSpacing: Int(screenSpacing),
-            enableShadow: enableShadow,
-            resolutionStyle: resolutionStyle,
-            copyToClipboard: copyToClipboard,
-            autoSaveToPath: autoSaveEnabled ? autoSavePath : nil
-        )
-        
-        if let screenshot = ScreenCapturer.captureAllScreens(with: settings) {
-            if shouldRestoreWindow {
-                DispatchQueue.main.async {
-                    NSApp.mainWindow?.deminiaturize(nil)
-                    NSApp.mainWindow?.makeKeyAndOrderFront(nil)
-                }
+        Task {
+            let settings = CaptureSettings(
+                cornerStyle: cornerStyle,
+                cornerRadius: cornerRadius,
+                screenSpacing: Int(screenSpacing),
+                enableShadow: enableShadow,
+                resolutionStyle: resolutionStyle,
+                copyToClipboard: copyToClipboard,
+                autoSaveToPath: autoSaveEnabled ? autoSavePath : nil
+            )
+            
+            // Capture on background thread
+            let screenshot = await Task.detached {
+                return ScreenCapturer.captureAllScreens(with: settings)
+            }.value
+            
+            guard let screenshot = screenshot else {
+                await MainActor.run { processingCapture = false }
+                return
             }
             
-            if let saved = ScreenCapturer.saveToSandbox(screenshot, context: modelContext) {
-                if settings.copyToClipboard {
+            // Save to sandbox on background thread
+            let saved = await Task.detached {
+                return ScreenCapturer.saveToSandbox(screenshot)
+            }.value
+            
+            guard let saved = saved else {
+                await MainActor.run { processingCapture = false }
+                return
+            }
+            
+            // Handle clipboard on background thread if needed
+            if settings.copyToClipboard {
+                await Task.detached {
                     if let pngData = try? Data(contentsOf: URL(fileURLWithPath: saved.filepath)),
                        let image = NSImage(data: pngData) {
                         ScreenCapturer.copyToClipboard(image)
                     }
-                }
-                
-                if let path = settings.autoSaveToPath {
+                }.value
+            }
+            
+            // Handle auto-save on background thread if needed
+            if let path = settings.autoSaveToPath {
+                await Task.detached {
                     ScreenCapturer.saveToPath(screenshot, path: path)
+                }.value
+            }
+            
+            // Update UI on main thread
+            await MainActor.run {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    screenshots.insert(saved, at: 0)
+                    newScreenshotID = saved.id
+                    selectedScreenshot = saved
+                    showingMainView = false
+                    captureLoadingOpacity = 0
                 }
                 
-                selectedScreenshot = saved
-                showingMainView = false
+                // Fade in the new screenshot
+                withAnimation(.easeIn(duration: 0.5).delay(0.2)) {
+                    captureLoadingOpacity = 1
+                }
+                
+                // Reset animation states after longer delay to ensure scroll completes
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    newScreenshotID = nil
+                }
+                
+                processingCapture = false
             }
         }
-        
-        isCapturing = false
     }
     
     private func shareScreenshot() {
@@ -295,32 +400,55 @@ struct ContentView: View {
     }
     
     private func deleteSelectedScreenshot() {
-        if let screenshot = selectedScreenshot,
-           let currentIndex = screenshots.firstIndex(where: { $0.id == screenshot.id }) {
+        guard let screenshot = selectedScreenshot else { return }
+        
+        isDeletingScreenshot = true
+        
+        let currentIndex = screenshots.firstIndex(where: { $0.id == screenshot.id })
+        let nextScreenshot = currentIndex.map { idx in
+            (idx + 1 < screenshots.count) ? screenshots[idx + 1] : 
+            (idx > 0 ? screenshots[idx - 1] : nil)
+        }
+        
+        selectedScreenshot = nextScreenshot!
+        showingMainView = nextScreenshot == nil
+        
+        Task {
+            try? await Task.detached {
+                try FileManager.default.removeItem(atPath: screenshot.filepath)
+            }.value
             
-            // Choose the next screenshot to show
-            let nextScreenshot = (currentIndex + 1 < screenshots.count) ? screenshots[currentIndex + 1] : (currentIndex > 0 ? screenshots[currentIndex - 1] : nil)
-            
-            // Delete the screenshot
-            try? FileManager.default.removeItem(atPath: screenshot.filepath)
-            modelContext.delete(screenshot)
-            
-            // Update the UI
-            selectedScreenshot = nextScreenshot
-            showingMainView = nextScreenshot == nil
+            await MainActor.run {
+                if let index = screenshots.firstIndex(where: { $0.id == screenshot.id }) {
+                    screenshots.remove(at: index)
+                }
+                isDeletingScreenshot = false
+            }
         }
     }
     
     private func updateWindowTitle() {
+        let title = if showingMainView {
+            defaultWindowTitle
+        } else if let screenshot = selectedScreenshot {
+            "\(defaultWindowTitle) (\(screenshot.displayName))"
+        } else {
+            defaultWindowTitle
+        }
+        
         DispatchQueue.main.async {
-            if let window = NSApp.mainWindow {
-                if showingMainView {
-                    window.title = "MultiScreen Capturer"
-                } else if let screenshot = selectedScreenshot {
-                    window.title = "MultiScreen Capturer (\(screenshot.displayName))"
-                } else {
-                    window.title = "MultiScreen Capturer"
-                }
+            NSApp.windows.first?.title = title
+        }
+    }
+    
+    private func loadScreenshots() {
+        Task {
+            let loadedScreenshots = await Task.detached {
+                return Screenshot.loadAllScreenshots()
+            }.value
+            
+            await MainActor.run {
+                screenshots = loadedScreenshots
             }
         }
     }
@@ -328,5 +456,4 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: Screenshot.self, inMemory: true)
 }

@@ -1,6 +1,5 @@
 import AppKit
 import Foundation
-import SwiftData
 
 struct CaptureSettings {
     let cornerStyle: ScreenCornerStyle
@@ -13,13 +12,15 @@ struct CaptureSettings {
 }
 
 class ScreenCapturer {
+    private static var thumbnailCache = NSCache<NSString, NSImage>()
+    
     static func checkScreenCapturePermission() {
         let checkOptionPrompt = true
         let hasPermission = CGPreflightScreenCaptureAccess()
 
-        if !hasPermission {
+        if (!hasPermission) {
             let wasGranted = CGRequestScreenCaptureAccess()
-            if !wasGranted {
+            if (!wasGranted) {
                 DispatchQueue.main.async {
                     let alert = NSAlert()
                     alert.messageText = "Need Screen Recording Permission"
@@ -230,14 +231,17 @@ class ScreenCapturer {
         }
     }
 
-    static func saveToSandbox(_ image: NSImage, context: ModelContext) -> Screenshot? {
+    static func saveToSandbox(_ image: NSImage) -> Screenshot? {
         guard
             let documentDirectory = FileManager.default.urls(
                 for: .documentDirectory, in: .userDomainMask
             ).first
         else {
+            print("Failed to get document directory")
             return nil
         }
+
+        try? FileManager.default.createDirectory(at: documentDirectory, withIntermediateDirectories: true)
 
         let now = Date()
         let formatter = DateFormatter()
@@ -246,25 +250,53 @@ class ScreenCapturer {
         let fileURL = documentDirectory.appendingPathComponent(filename)
 
         if let tiffData = image.tiffRepresentation,
-            let bitmapImage = NSBitmapImageRep(data: tiffData),
-            let pngData = bitmapImage.representation(using: .png, properties: [:])
+           let bitmapImage = NSBitmapImageRep(data: tiffData),
+           let pngData = bitmapImage.representation(using: .png, properties: [:])
         {
-            try? pngData.write(to: fileURL)
-
-            let screenshot = Screenshot(filepath: fileURL.path)
-            context.insert(screenshot)
-            return screenshot
+            do {
+                try pngData.write(to: fileURL)
+                return Screenshot(
+                    id: UUID(),
+                    timestamp: now,
+                    filepath: fileURL.path
+                )
+            } catch {
+                print("Failed to save image: \(error.localizedDescription)")
+                return nil
+            }
         }
 
+        print("Failed to convert image to PNG")
         return nil
     }
 
     static func loadImage(from filepath: String) -> NSImage? {
+        // 添加文件存在检查
+        guard FileManager.default.fileExists(atPath: filepath) else {
+            print("Image file not found at path: \(filepath)")
+            return nil
+        }
+        
         return NSImage(contentsOfFile: filepath)
     }
 
     static func loadThumbnail(from filepath: String) -> NSImage? {
-        guard let originalImage = NSImage(contentsOfFile: filepath) else { return nil }
+        let key = filepath as NSString
+        
+        if let cached = thumbnailCache.object(forKey: key) {
+            return cached
+        }
+        
+        // 添加文件存在检查
+        guard FileManager.default.fileExists(atPath: filepath) else {
+            print("Thumbnail file not found at path: \(filepath)")
+            return nil
+        }
+        
+        guard let originalImage = NSImage(contentsOfFile: filepath) else { 
+            print("Failed to load image for thumbnail: \(filepath)")
+            return nil 
+        }
         
         let thumbnailSize = NSSize(width: 100, height: 100)
         let thumbnail = NSImage(size: thumbnailSize)
@@ -273,7 +305,7 @@ class ScreenCapturer {
         NSGraphicsContext.current?.imageInterpolation = .high
         let aspectRatio = originalImage.size.width / originalImage.size.height
         let targetRect: NSRect
-        if aspectRatio > 1 {
+        if (aspectRatio > 1) {
             let newHeight = thumbnailSize.width / aspectRatio
             targetRect = NSRect(x: 0, y: (thumbnailSize.height - newHeight) / 2, width: thumbnailSize.width, height: newHeight)
         } else {
@@ -281,11 +313,12 @@ class ScreenCapturer {
             targetRect = NSRect(x: (thumbnailSize.width - newWidth) / 2, y: 0, width: newWidth, height: thumbnailSize.height)
         }
         originalImage.draw(in: targetRect,
-                 from: NSRect(origin: .zero, size: originalImage.size),
-                 operation: .copy,
-                 fraction: 1.0)
+                         from: NSRect(origin: .zero, size: originalImage.size),
+                         operation: .copy,
+                         fraction: 1.0)
         thumbnail.unlockFocus()
         
+        thumbnailCache.setObject(thumbnail, forKey: key)
         return thumbnail
     }
 

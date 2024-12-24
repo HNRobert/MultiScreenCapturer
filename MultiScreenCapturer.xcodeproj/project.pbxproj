@@ -24,9 +24,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		E1A4E4FD2D182ECC0097E575 /* MultiScreenCapturer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MultiScreenCapturer.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		E1A4E5102D182ECD0097E575 /* MultiScreenCapturerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MultiScreenCapturerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		E1A4E51A2D182ECD0097E575 /* MultiScreenCapturerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MultiScreenCapturerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E1A4E4FD2D182ECC0097E575 /* MultiScreenCapturer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = MultiScreenCapturer.app; path = "MultiScreen Capturer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		E1A4E5102D182ECD0097E575 /* MultiScreenCapturerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = MultiScreenCapturerTests.xctest; path = "MultiScreen Capturer.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		E1A4E51A2D182ECD0097E575 /* MultiScreenCapturerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = MultiScreenCapturerUITests.xctest; path = "MultiScreen Capturer.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */

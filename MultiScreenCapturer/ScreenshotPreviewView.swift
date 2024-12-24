@@ -8,6 +8,8 @@ struct ScreenshotPreviewView: View {
     @State private var offset: CGSize = .zero
     @State private var lastOffset: CGSize = .zero
     @State private var currentMousePosition: CGPoint = .zero
+    @State private var isLoading = true
+    @State private var imageOpacity: Double = 0
     
     private var isAtDefaultState: Bool {
         return scale == 1.0 && offset == .zero
@@ -83,9 +85,13 @@ struct ScreenshotPreviewView: View {
                                     }
                             }
                         )
-                        
-                } else {
+                        .opacity(imageOpacity)
+                }
+                
+                if isLoading {
                     ProgressView()
+                        .scaleEffect(1.5)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -101,16 +107,46 @@ struct ScreenshotPreviewView: View {
                         }
         }
         .onAppear {
-            loadImage()
+            loadImageAsync()
         }
         .onChange(of: screenshot) { _, _ in
-            loadImage()
             resetView()
+            withAnimation(.easeOut(duration: 0.2)) {
+                imageOpacity = 0
+            }
+            isLoading = true
+            loadImageAsync()
         }
     }
     
-    private func loadImage() {
-        image = ScreenCapturer.loadImage(from: screenshot.filepath)
+    private func loadImageAsync() {
+        Task {
+            await MainActor.run {
+                isLoading = true
+                imageOpacity = 0
+            }
+            
+            // Add small delay to ensure loading indicator shows
+            try? await Task.sleep(nanoseconds: 100_000_000)
+            
+            let loadedImage = await Task.detached {
+                return ScreenCapturer.loadImage(from: screenshot.filepath)
+            }.value
+            
+            await MainActor.run {
+                if let loadedImage = loadedImage {
+                    image = loadedImage
+                    isLoading = false
+                    withAnimation(.easeIn(duration: 0.3)) {
+                        imageOpacity = 1
+                    }
+                } else {
+                    // 处理加载失败的情况
+                    isLoading = false
+                    // 可以在这里添加错误提示UI
+                }
+            }
+        }
     }
     
     private func resetView() {
