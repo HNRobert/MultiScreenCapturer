@@ -4,7 +4,7 @@ extension NSImage: @unchecked @retroactive Sendable {}
 
 struct ScreenshotPreviewView: View {
     let screenshot: Screenshot
-    @State private var image: NSImage?
+    @State private var imageProvider: ImageProvider?
     @State private var scale: CGFloat = 1.0
     @State private var lastScale: CGFloat = 1.0
     @State private var offset: CGSize = .zero
@@ -18,7 +18,7 @@ struct ScreenshotPreviewView: View {
     }
     
     private func scaleAround(scale: CGFloat) {
-        guard (image?.size) != nil else { return }
+        guard imageProvider != nil else { return }
         
         let previousScale = self.scale
         self.scale = max(0.5, lastScale * scale)
@@ -36,8 +36,8 @@ struct ScreenshotPreviewView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                if let image = image {
-                    Image(nsImage: image)
+                if let provider = imageProvider {
+                    provider.image
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .scaleEffect(scale)
@@ -131,21 +131,17 @@ struct ScreenshotPreviewView: View {
             // Add small delay to ensure loading indicator shows
             try? await Task.sleep(nanoseconds: 100_000_000)
             
-            let loadedImage = await MainActor.run {
-                return ScreenCapturer.loadImage(from: screenshot.filepath)
-            }
-            
-            await MainActor.run {
-                if let loadedImage = loadedImage {
-                    image = loadedImage
+            if let nsImage = await ScreenCapturer.loadImage(from: screenshot.filepath) {
+                await MainActor.run {
+                    imageProvider = ImageProvider(nsImage: nsImage)
                     isLoading = false
                     withAnimation(.easeIn(duration: 0.3)) {
                         imageOpacity = 1
                     }
-                } else {
-                    // 处理加载失败的情况
+                }
+            } else {
+                await MainActor.run {
                     isLoading = false
-                    // 可以在这里添加错误提示UI
                 }
             }
         }
@@ -158,5 +154,14 @@ struct ScreenshotPreviewView: View {
             offset = .zero
             lastOffset = .zero
         }
+    }
+}
+
+// Helper to bridge NSImage to SwiftUI Image
+private struct ImageProvider {
+    let image: Image
+    
+    init(nsImage: NSImage) {
+        self.image = Image(nsImage: nsImage)
     }
 }

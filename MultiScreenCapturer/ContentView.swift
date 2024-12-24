@@ -51,7 +51,7 @@ struct ContentView: View {
                 isDeletingScreenshot: isDeletingScreenshot,
                 onHomeButtonTapped: { showingMainView = true },
                 onDeleteButtonTapped: deleteSelectedScreenshot,
-                onSaveButtonTapped: saveScreenshot,
+                onSaveButtonTapped: { Task { await saveScreenshot() } },
                 onShareButtonTapped: shareScreenshot,
                 onCaptureButtonTapped: captureScreens
             )
@@ -137,7 +137,10 @@ struct ContentView: View {
             }.value
             
             guard let screenshot = screenshot else {
-                await MainActor.run { processingCapture = false }
+                await MainActor.run { 
+                    processingCapture = false
+                    isCapturing = false  // 添加这行，确保失败时重置状态
+                }
                 return
             }
             
@@ -189,6 +192,7 @@ struct ContentView: View {
                 }
                 
                 processingCapture = false
+                isCapturing = false  // 添加这行，重置捕获状态
             }
         }
     }
@@ -202,9 +206,11 @@ struct ContentView: View {
         }
     }
     
-    private func saveScreenshot() {
+    private func saveScreenshot() async {
         guard let screenshot = selectedScreenshot,
-              let image = ScreenCapturer.loadImage(from: screenshot.filepath) else { return }
+              let image = await ScreenCapturer.loadImage(from: screenshot.filepath) else {
+            return
+        }
         
         ScreenCapturer.saveScreenshot(image)
     }

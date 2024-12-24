@@ -4,13 +4,14 @@ struct ScreenshotRow: View {
     let screenshot: Screenshot
     let newScreenshotID: UUID?
     let captureLoadingOpacity: Double
+    @State private var thumbnailProvider: ImageProvider?
     
     var body: some View {
         NavigationLink(value: screenshot) {
             VStack(spacing: 8) {
-                if let thumbnail = ScreenCapturer.loadThumbnail(from: screenshot.filepath) {
+                if let provider = thumbnailProvider {
                     GeometryReader { geometry in
-                        Image(nsImage: thumbnail)
+                        provider.image
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(maxWidth: geometry.size.width - 20)
@@ -30,5 +31,18 @@ struct ScreenshotRow: View {
             insertion: .move(edge: .top).combined(with: .opacity),
             removal: .opacity
         ))
+        .onAppear {
+            if let thumbnail = ScreenCapturer.loadThumbnail(from: screenshot.filepath) {
+                thumbnailProvider = ImageProvider(nsImage: thumbnail)
+            }
+        }
+    }
+}
+
+private struct ImageProvider {
+    let image: Image
+    
+    init(nsImage: NSImage) {
+        self.image = Image(nsImage: nsImage)
     }
 }

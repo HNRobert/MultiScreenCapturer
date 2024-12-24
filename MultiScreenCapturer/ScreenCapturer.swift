@@ -269,8 +269,7 @@ class ScreenCapturer {
         return nil
     }
 
-    static func loadImage(from filepath: String) -> NSImage? {
-        // 添加文件存在检查
+    static func loadImage(from filepath: String) async -> NSImage? {
         guard FileManager.default.fileExists(atPath: filepath) else {
             print("Image file not found at path: \(filepath)")
             return nil
