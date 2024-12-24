@@ -15,7 +15,6 @@ class ScreenCapturer {
     private static var thumbnailCache = NSCache<NSString, NSImage>()
     
     static func checkScreenCapturePermission() {
-        let checkOptionPrompt = true
         let hasPermission = CGPreflightScreenCaptureAccess()
 
         if (!hasPermission) {
@@ -138,7 +137,7 @@ class ScreenCapturer {
             if let displayId = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID,
                let screenShot = CGDisplayCreateImage(displayId) {
                 let frame = screen.frame
-                var relativeFrame = CGRect(
+                let relativeFrame = CGRect(
                     x: (frame.origin.x - minX + spacing) * scale,
                     y: (frame.origin.y - minY + spacing) * scale,
                     width: frame.width * scale,

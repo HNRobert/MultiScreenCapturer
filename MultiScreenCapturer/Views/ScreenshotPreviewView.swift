@@ -1,5 +1,7 @@
 import SwiftUI
 
+extension NSImage: @unchecked @retroactive Sendable {}
+
 struct ScreenshotPreviewView: View {
     let screenshot: Screenshot
     @State private var image: NSImage?
@@ -16,7 +18,7 @@ struct ScreenshotPreviewView: View {
     }
     
     private func scaleAround(scale: CGFloat) {
-        guard let frameSize = image?.size else { return }
+        guard (image?.size) != nil else { return }
         
         let previousScale = self.scale
         self.scale = max(0.5, lastScale * scale)
@@ -129,9 +131,9 @@ struct ScreenshotPreviewView: View {
             // Add small delay to ensure loading indicator shows
             try? await Task.sleep(nanoseconds: 100_000_000)
             
-            let loadedImage = await Task.detached {
+            let loadedImage = await MainActor.run {
                 return ScreenCapturer.loadImage(from: screenshot.filepath)
-            }.value
+            }
             
             await MainActor.run {
                 if let loadedImage = loadedImage {

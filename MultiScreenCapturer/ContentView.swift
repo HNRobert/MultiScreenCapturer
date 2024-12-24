@@ -57,8 +57,12 @@ struct ContentView: View {
             )
         }
         .onAppear(perform: setupView)
-        .onChange(of: selectedScreenshot, perform: handleScreenshotSelection)
-        .onChange(of: showingMainView, perform: handleMainViewChange)
+        .onChange(of: selectedScreenshot) { oldValue, newValue in
+            handleScreenshotSelection(newValue)
+        }
+        .onChange(of: showingMainView) { oldValue, newValue in
+            handleMainViewChange(newValue)
+        }
         .onChange(of: columnVisibility) { _, _ in
             updateWindowTitle()
         }
