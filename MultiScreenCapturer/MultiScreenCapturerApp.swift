@@ -7,12 +7,22 @@
 
 import SwiftData
 import SwiftUI
+import AppKit
+
+class WindowDelegate: NSObject, NSWindowDelegate {
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        NSApplication.shared.terminate(nil)
+        return true
+    }
+}
 
 @main
 struct MultiScreenCapturerApp: App {
     @State private var windowTitle = "MultiScreen Capturer"
     let container: ModelContainer
-
+    
+    private let windowDelegate = WindowDelegate()
+    
     init() {
         do {
             container = try ModelContainer(for: Screenshot.self)
@@ -20,11 +30,12 @@ struct MultiScreenCapturerApp: App {
             fatalError("Failed to initialize ModelContainer: \(error)")
         }
     }
-
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .onAppear {
+                    setupWindow()
                     NSApp.mainWindow?.title = windowTitle
                 }
                 .onChange(of: NSApp.mainWindow?.title) { oldTitle, newTitle in
@@ -39,5 +50,13 @@ struct MultiScreenCapturerApp: App {
                 }
         }
         .modelContainer(container)
+    }
+    
+    private func setupWindow() {
+        DispatchQueue.main.async {
+            if let window = NSApp.windows.first {
+                window.delegate = windowDelegate
+            }
+        }
     }
 }

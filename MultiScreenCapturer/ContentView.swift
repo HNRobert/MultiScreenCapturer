@@ -124,7 +124,6 @@ struct ContentView: View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(spacing: 20) {
-                    // 使用相同的padding包装两个GroupBox
                     VStack(spacing: 20) {
                         GroupBox("Capture Settings") {
                             VStack(alignment: .leading, spacing: 12) {
@@ -263,7 +262,10 @@ struct ContentView: View {
             
             if let saved = ScreenCapturer.saveToSandbox(screenshot, context: modelContext) {
                 if settings.copyToClipboard {
-                    ScreenCapturer.copyToClipboard(screenshot)
+                    if let pngData = try? Data(contentsOf: URL(fileURLWithPath: saved.filepath)),
+                       let image = NSImage(data: pngData) {
+                        ScreenCapturer.copyToClipboard(image)
+                    }
                 }
                 
                 if let path = settings.autoSaveToPath {
@@ -279,10 +281,9 @@ struct ContentView: View {
     }
     
     private func shareScreenshot() {
-        guard let screenshot = selectedScreenshot,
-              let image = ScreenCapturer.loadImage(from: screenshot.filepath) else { return }
-        
-        let picker = NSSharingServicePicker(items: [image])
+        guard let screenshot = selectedScreenshot else { return }
+        let fileURL = URL(fileURLWithPath: screenshot.filepath)
+        let picker = NSSharingServicePicker(items: [fileURL])
         if let contentView = NSApp.windows.first?.contentView {
             picker.show(relativeTo: .zero, of: contentView, preferredEdge: .minY)
         }

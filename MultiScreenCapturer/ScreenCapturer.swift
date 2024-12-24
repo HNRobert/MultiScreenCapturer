@@ -290,8 +290,16 @@ class ScreenCapturer {
     }
 
     static func copyToClipboard(_ image: NSImage) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.writeObjects([image])
+        if let tiffData = image.tiffRepresentation,
+           let bitmapImage = NSBitmapImageRep(data: tiffData) {
+            NSPasteboard.general.clearContents()
+            
+            if let pngData = bitmapImage.representation(using: .png, properties: [:]) {
+                NSPasteboard.general.setData(pngData, forType: .png)
+            }
+            
+            NSPasteboard.general.setData(tiffData, forType: .tiff)
+        }
     }
     
     static func saveToPath(_ image: NSImage, path: String) {
