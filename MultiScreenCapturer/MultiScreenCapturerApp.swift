@@ -36,26 +36,19 @@ struct MultiScreenCapturerApp: App {
             ContentView()
                 .onAppear {
                     setupWindow()
-                    NSApp.mainWindow?.title = windowTitle
-                }
-                .onChange(of: NSApp.mainWindow?.title) { oldTitle, newTitle in
-                    if let path = NSApp.mainWindow?.representedFilename,
-                        !path.isEmpty
-                    {
-                        let filename = (path as NSString).lastPathComponent
-                        NSApp.mainWindow?.title = windowTitle + " (\(filename))"
-                    } else {
-                        NSApp.mainWindow?.title = windowTitle
-                    }
                 }
         }
+        .windowStyle(.titleBar)
+        .windowToolbarStyle(.unified)
+        .defaultSize(width: 800, height: 600)
         .modelContainer(container)
     }
     
     private func setupWindow() {
-        DispatchQueue.main.async {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             if let window = NSApp.windows.first {
                 window.delegate = windowDelegate
+                window.title = windowTitle
             }
         }
     }

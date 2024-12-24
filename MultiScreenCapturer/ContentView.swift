@@ -16,6 +16,7 @@ struct ContentView: View {
     @State private var isCapturing = false
     @State private var selectedScreenshot: Screenshot?
     @State private var showingMainView = true
+    @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
     
     @AppStorage("cornerStyle") private var cornerStyle = ScreenCornerStyle.none
     @AppStorage("screenSpacing") private var screenSpacing: Double = 10
@@ -27,7 +28,7 @@ struct ContentView: View {
     @AppStorage("autoSavePath") private var autoSavePath = ""
     
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             screenshotListView
                 .frame(minWidth: 180)
         } detail: {
@@ -35,22 +36,19 @@ struct ContentView: View {
         }
         .onAppear {
             ScreenCapturer.checkScreenCapturePermission()
-            DispatchQueue.main.async {
-                updateWindowTitle()
-            }
+            updateWindowTitle()
         }
         .onChange(of: selectedScreenshot) { _, _ in
             showingMainView = false
-            DispatchQueue.main.async {
-                updateWindowTitle()
-            }
+            updateWindowTitle()
         }
         .onChange(of: showingMainView) { _, newValue in
             if newValue {
-                DispatchQueue.main.async {
-                    NSApp.mainWindow?.title = "MultiScreen Capturer"
-                }
+                updateWindowTitle()
             }
+        }
+        .onChange(of: columnVisibility) { _, _ in
+            updateWindowTitle()
         }
     }
     
@@ -314,11 +312,16 @@ struct ContentView: View {
     }
     
     private func updateWindowTitle() {
-        if let screenshot = selectedScreenshot,
-           let window = NSApp.mainWindow {
-            window.title = "MultiScreen Capturer (\(screenshot.displayName))"
-        } else if let window = NSApp.mainWindow {
-            window.title = "MultiScreen Capturer"
+        DispatchQueue.main.async {
+            if let window = NSApp.mainWindow {
+                if showingMainView {
+                    window.title = "MultiScreen Capturer"
+                } else if let screenshot = selectedScreenshot {
+                    window.title = "MultiScreen Capturer (\(screenshot.displayName))"
+                } else {
+                    window.title = "MultiScreen Capturer"
+                }
+            }
         }
     }
 }
