@@ -231,7 +231,7 @@ struct ContentView: View {
         isCapturing = true
         
         if hideWindowBeforeCapture {
-            NSApp.mainWindow?.orderOut(nil)
+            NSApp.mainWindow?.miniaturize(nil)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 performCapture()
             }
@@ -253,24 +253,25 @@ struct ContentView: View {
             autoSaveToPath: autoSaveEnabled ? autoSavePath : nil
         )
         
-        if let screenshot = ScreenCapturer.captureAllScreens(with: settings),
-           let saved = ScreenCapturer.saveToSandbox(screenshot, context: modelContext) {
-            
-            if settings.copyToClipboard {
-                ScreenCapturer.copyToClipboard(screenshot)
+        if let screenshot = ScreenCapturer.captureAllScreens(with: settings) {
+            if shouldRestoreWindow {
+                DispatchQueue.main.async {
+                    NSApp.mainWindow?.deminiaturize(nil)
+                    NSApp.mainWindow?.makeKeyAndOrderFront(nil)
+                }
             }
             
-            if let path = settings.autoSaveToPath {
-                ScreenCapturer.saveToPath(screenshot, path: path)
-            }
-            
-            selectedScreenshot = saved
-            showingMainView = false
-        }
-        
-        if shouldRestoreWindow {
-            DispatchQueue.main.async {
-                NSApp.mainWindow?.makeKeyAndOrderFront(nil)
+            if let saved = ScreenCapturer.saveToSandbox(screenshot, context: modelContext) {
+                if settings.copyToClipboard {
+                    ScreenCapturer.copyToClipboard(screenshot)
+                }
+                
+                if let path = settings.autoSaveToPath {
+                    ScreenCapturer.saveToPath(screenshot, path: path)
+                }
+                
+                selectedScreenshot = saved
+                showingMainView = false
             }
         }
         

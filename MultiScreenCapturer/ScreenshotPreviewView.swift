@@ -83,7 +83,13 @@ struct ScreenshotPreviewView: View {
                                     }
                             }
                         )
-                        .overlay(alignment: .topTrailing) {
+                        
+                } else {
+                    ProgressView()
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .overlay(alignment: .topTrailing) {
                             if !isAtDefaultState {
                                 Button(action: resetView) {
                                     Image(systemName: "arrow.counterclockwise")
@@ -93,11 +99,6 @@ struct ScreenshotPreviewView: View {
                                 .padding()
                             }
                         }
-                } else {
-                    ProgressView()
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .onAppear {
             loadImage()
