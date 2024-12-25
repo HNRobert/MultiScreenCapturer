@@ -38,7 +38,7 @@ jobs:
       - name: Create App Bundle
         run: |
           mkdir -p ./artifacts
-          cp -r ./build/MultiScreenCapturer.xcarchive/Products/Applications/MultiScreenCapturer.app ./artifacts/
+          cp -r "./build/MultiScreenCapturer.xcarchive/Products/Applications/MultiScreen Capturer.app" ./artifacts/
           cd artifacts
           zip -r ../MultiScreenCapturer-${{ needs.setup.outputs.version }}-macos.zip .
           cd ..
