@@ -9,8 +9,12 @@ import SwiftUI
 import AppKit
 
 class WindowDelegate: NSObject, NSWindowDelegate {
+    var shouldTerminateOnClose: Bool = true
+    
     func windowShouldClose(_ sender: NSWindow) -> Bool {
-        NSApplication.shared.terminate(nil)
+        if shouldTerminateOnClose {
+            NSApplication.shared.terminate(nil)
+        }
         return true
     }
 }

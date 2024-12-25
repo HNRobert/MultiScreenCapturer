@@ -35,8 +35,8 @@
             parallelizable = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "E1A4E50F2D182ECD0097E575"
-               BuildableName = "MultiScreen Capturer.xctest"
+               BlueprintIdentifier = "E116A1F22D1C7AC4009314FB"
+               BuildableName = "MultiScreenCapturerTests.xctest"
                BlueprintName = "MultiScreenCapturerTests"
                ReferencedContainer = "container:MultiScreenCapturer.xcodeproj">
             </BuildableReference>
@@ -46,8 +46,8 @@
             parallelizable = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "E1A4E5192D182ECD0097E575"
-               BuildableName = "MultiScreen Capturer.xctest"
+               BlueprintIdentifier = "E116A1FF2D1C7AFC009314FB"
+               BuildableName = "MultiScreenCapturerUITests.xctest"
                BlueprintName = "MultiScreenCapturerUITests"
                ReferencedContainer = "container:MultiScreenCapturer.xcodeproj">
             </BuildableReference>

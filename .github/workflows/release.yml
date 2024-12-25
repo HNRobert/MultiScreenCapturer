@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  setup:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.VERSION }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+  build:
+    needs: setup
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Build App
+        run: |
+          xcodebuild clean archive \
+            -project MultiScreenCapturer.xcodeproj \
+            -scheme MultiScreenCapturer \
+            -configuration Release \
+            -archivePath ./build/MultiScreenCapturer.xcarchive
+
+      - name: Create App Bundle
+        run: |
+          mkdir -p ./artifacts
+          cp -r ./build/MultiScreenCapturer.xcarchive/Products/Applications/MultiScreenCapturer.app ./artifacts/
+          cd artifacts
+          zip -r ../MultiScreenCapturer-${{ needs.setup.outputs.version }}-macos.zip .
+          cd ..
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: MultiScreenCapturer-${{ needs.setup.outputs.version }}-macos.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: true

@@ -7,14 +7,14 @@
 	objects = {
 
 /* Begin PBXContainerItemProxy section */
-		E1A4E5112D182ECD0097E575 /* PBXContainerItemProxy */ = {
+		E116A1F72D1C7AC4009314FB /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = E1A4E4F52D182ECC0097E575 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = E1A4E4FC2D182ECC0097E575;
 			remoteInfo = MultiScreenCapturer;
 		};
-		E1A4E51B2D182ECD0097E575 /* PBXContainerItemProxy */ = {
+		E116A2062D1C7AFC009314FB /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = E1A4E4F52D182ECC0097E575 /* Project object */;
 			proxyType = 1;
@@ -24,12 +24,22 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		E1A4E4FD2D182ECC0097E575 /* MultiScreenCapturer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = MultiScreenCapturer.app; path = "MultiScreen Capturer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		E1A4E5102D182ECD0097E575 /* MultiScreenCapturerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = MultiScreenCapturerTests.xctest; path = "MultiScreen Capturer.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		E1A4E51A2D182ECD0097E575 /* MultiScreenCapturerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = MultiScreenCapturerUITests.xctest; path = "MultiScreen Capturer.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		E116A1F32D1C7AC4009314FB /* MultiScreenCapturerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MultiScreenCapturerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E116A2002D1C7AFC009314FB /* MultiScreenCapturerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MultiScreenCapturerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E1A4E4FD2D182ECC0097E575 /* MultiScreen Capturer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "MultiScreen Capturer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		E116A1F42D1C7AC4009314FB /* MultiScreenCapturerTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = MultiScreenCapturerTests;
+			sourceTree = "<group>";
+		};
+		E116A2012D1C7AFC009314FB /* MultiScreenCapturerUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = MultiScreenCapturerUITests;
+			sourceTree = "<group>";
+		};
 		E1A4E4FF2D182ECC0097E575 /* MultiScreenCapturer */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = MultiScreenCapturer;
@@ -48,21 +58,21 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		E116A1F02D1C7AC4009314FB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E116A1FD2D1C7AFC009314FB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E1A4E4FA2D182ECC0097E575 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		E1A4E50D2D182ECD0097E575 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		E1A4E5172D182ECD0097E575 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -78,6 +88,8 @@
 				E1A4E4FF2D182ECC0097E575 /* MultiScreenCapturer */,
 				E1A4E5132D182ECD0097E575 /* MultiScreenCapturerTests */,
 				E1A4E51D2D182ECD0097E575 /* MultiScreenCapturerUITests */,
+				E116A1F42D1C7AC4009314FB /* MultiScreenCapturerTests */,
+				E116A2012D1C7AFC009314FB /* MultiScreenCapturerUITests */,
 				E1A4E4FE2D182ECC0097E575 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -85,9 +97,9 @@
 		E1A4E4FE2D182ECC0097E575 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				E1A4E4FD2D182ECC0097E575 /* MultiScreenCapturer.app */,
-				E1A4E5102D182ECD0097E575 /* MultiScreenCapturerTests.xctest */,
-				E1A4E51A2D182ECD0097E575 /* MultiScreenCapturerUITests.xctest */,
+				E1A4E4FD2D182ECC0097E575 /* MultiScreen Capturer.app */,
+				E116A1F32D1C7AC4009314FB /* MultiScreenCapturerTests.xctest */,
+				E116A2002D1C7AFC009314FB /* MultiScreenCapturerUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -95,6 +107,52 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		E116A1F22D1C7AC4009314FB /* MultiScreenCapturerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E116A1F92D1C7AC4009314FB /* Build configuration list for PBXNativeTarget "MultiScreenCapturerTests" */;
+			buildPhases = (
+				E116A1EF2D1C7AC4009314FB /* Sources */,
+				E116A1F02D1C7AC4009314FB /* Frameworks */,
+				E116A1F12D1C7AC4009314FB /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E116A1F82D1C7AC4009314FB /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				E116A1F42D1C7AC4009314FB /* MultiScreenCapturerTests */,
+			);
+			name = MultiScreenCapturerTests;
+			packageProductDependencies = (
+			);
+			productName = MultiScreenCapturerTests;
+			productReference = E116A1F32D1C7AC4009314FB /* MultiScreenCapturerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		E116A1FF2D1C7AFC009314FB /* MultiScreenCapturerUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E116A2082D1C7AFC009314FB /* Build configuration list for PBXNativeTarget "MultiScreenCapturerUITests" */;
+			buildPhases = (
+				E116A1FC2D1C7AFC009314FB /* Sources */,
+				E116A1FD2D1C7AFC009314FB /* Frameworks */,
+				E116A1FE2D1C7AFC009314FB /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E116A2072D1C7AFC009314FB /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				E116A2012D1C7AFC009314FB /* MultiScreenCapturerUITests */,
+			);
+			name = MultiScreenCapturerUITests;
+			packageProductDependencies = (
+			);
+			productName = MultiScreenCapturerUITests;
+			productReference = E116A2002D1C7AFC009314FB /* MultiScreenCapturerUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		E1A4E4FC2D182ECC0097E575 /* MultiScreenCapturer */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = E1A4E5242D182ECD0097E575 /* Build configuration list for PBXNativeTarget "MultiScreenCapturer" */;
@@ -114,54 +172,8 @@
 			packageProductDependencies = (
 			);
 			productName = MultiScreenCapturer;
-			productReference = E1A4E4FD2D182ECC0097E575 /* MultiScreenCapturer.app */;
+			productReference = E1A4E4FD2D182ECC0097E575 /* MultiScreen Capturer.app */;
 			productType = "com.apple.product-type.application";
-		};
-		E1A4E50F2D182ECD0097E575 /* MultiScreenCapturerTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = E1A4E5272D182ECD0097E575 /* Build configuration list for PBXNativeTarget "MultiScreenCapturerTests" */;
-			buildPhases = (
-				E1A4E50C2D182ECD0097E575 /* Sources */,
-				E1A4E50D2D182ECD0097E575 /* Frameworks */,
-				E1A4E50E2D182ECD0097E575 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				E1A4E5122D182ECD0097E575 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				E1A4E5132D182ECD0097E575 /* MultiScreenCapturerTests */,
-			);
-			name = MultiScreenCapturerTests;
-			packageProductDependencies = (
-			);
-			productName = MultiScreenCapturerTests;
-			productReference = E1A4E5102D182ECD0097E575 /* MultiScreenCapturerTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
-		};
-		E1A4E5192D182ECD0097E575 /* MultiScreenCapturerUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = E1A4E52A2D182ECD0097E575 /* Build configuration list for PBXNativeTarget "MultiScreenCapturerUITests" */;
-			buildPhases = (
-				E1A4E5162D182ECD0097E575 /* Sources */,
-				E1A4E5172D182ECD0097E575 /* Frameworks */,
-				E1A4E5182D182ECD0097E575 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				E1A4E51C2D182ECD0097E575 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				E1A4E51D2D182ECD0097E575 /* MultiScreenCapturerUITests */,
-			);
-			name = MultiScreenCapturerUITests;
-			packageProductDependencies = (
-			);
-			productName = MultiScreenCapturerUITests;
-			productReference = E1A4E51A2D182ECD0097E575 /* MultiScreenCapturerUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
 
@@ -173,16 +185,16 @@
 				LastSwiftUpdateCheck = 1620;
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
+					E116A1F22D1C7AC4009314FB = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = E1A4E4FC2D182ECC0097E575;
+					};
+					E116A1FF2D1C7AFC009314FB = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = E1A4E4FC2D182ECC0097E575;
+					};
 					E1A4E4FC2D182ECC0097E575 = {
 						CreatedOnToolsVersion = 16.2;
-					};
-					E1A4E50F2D182ECD0097E575 = {
-						CreatedOnToolsVersion = 16.2;
-						TestTargetID = E1A4E4FC2D182ECC0097E575;
-					};
-					E1A4E5192D182ECD0097E575 = {
-						CreatedOnToolsVersion = 16.2;
-						TestTargetID = E1A4E4FC2D182ECC0097E575;
 					};
 				};
 			};
@@ -201,28 +213,28 @@
 			projectRoot = "";
 			targets = (
 				E1A4E4FC2D182ECC0097E575 /* MultiScreenCapturer */,
-				E1A4E50F2D182ECD0097E575 /* MultiScreenCapturerTests */,
-				E1A4E5192D182ECD0097E575 /* MultiScreenCapturerUITests */,
+				E116A1F22D1C7AC4009314FB /* MultiScreenCapturerTests */,
+				E116A1FF2D1C7AFC009314FB /* MultiScreenCapturerUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		E116A1F12D1C7AC4009314FB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E116A1FE2D1C7AFC009314FB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E1A4E4FB2D182ECC0097E575 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		E1A4E50E2D182ECD0097E575 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		E1A4E5182D182ECD0097E575 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -232,21 +244,21 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		E116A1EF2D1C7AC4009314FB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E116A1FC2D1C7AFC009314FB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E1A4E4F92D182ECC0097E575 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		E1A4E50C2D182ECD0097E575 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		E1A4E5162D182ECD0097E575 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -256,19 +268,85 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		E1A4E5122D182ECD0097E575 /* PBXTargetDependency */ = {
+		E116A1F82D1C7AC4009314FB /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = E1A4E4FC2D182ECC0097E575 /* MultiScreenCapturer */;
-			targetProxy = E1A4E5112D182ECD0097E575 /* PBXContainerItemProxy */;
+			targetProxy = E116A1F72D1C7AC4009314FB /* PBXContainerItemProxy */;
 		};
-		E1A4E51C2D182ECD0097E575 /* PBXTargetDependency */ = {
+		E116A2072D1C7AFC009314FB /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = E1A4E4FC2D182ECC0097E575 /* MultiScreenCapturer */;
-			targetProxy = E1A4E51B2D182ECD0097E575 /* PBXContainerItemProxy */;
+			targetProxy = E116A2062D1C7AFC009314FB /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		E116A1FA2D1C7AC4009314FB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8RY46C6B44;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = HNRobert.MultiScreenCapturerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MultiScreen Capturer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MultiScreen Capturer";
+			};
+			name = Debug;
+		};
+		E116A1FB2D1C7AC4009314FB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8RY46C6B44;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = HNRobert.MultiScreenCapturerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MultiScreen Capturer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MultiScreen Capturer";
+			};
+			name = Release;
+		};
+		E116A2092D1C7AFC009314FB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8RY46C6B44;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = HNRobert.MultiScreenCapturerUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = MultiScreenCapturer;
+			};
+			name = Debug;
+		};
+		E116A20A2D1C7AFC009314FB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8RY46C6B44;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = HNRobert.MultiScreenCapturerUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = MultiScreenCapturer;
+			};
+			name = Release;
+		};
 		E1A4E5222D182ECD0097E575 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -402,7 +480,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = I;
+				INFOPLIST_KEY_CFBundleDisplayName = "";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -433,7 +511,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = I;
+				INFOPLIST_KEY_CFBundleDisplayName = "";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -449,77 +527,27 @@
 			};
 			name = Release;
 		};
-		E1A4E5282D182ECD0097E575 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 8RY46C6B44;
-				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = HNRobert.MultiScreenCapturerTests;
-				PRODUCT_NAME = "MultiScreen Capturer";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MultiScreenCapturer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MultiScreenCapturer";
-			};
-			name = Debug;
-		};
-		E1A4E5292D182ECD0097E575 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 8RY46C6B44;
-				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = HNRobert.MultiScreenCapturerTests;
-				PRODUCT_NAME = "MultiScreen Capturer";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MultiScreenCapturer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MultiScreenCapturer";
-			};
-			name = Release;
-		};
-		E1A4E52B2D182ECD0097E575 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 8RY46C6B44;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = HNRobert.MultiScreenCapturerUITests;
-				PRODUCT_NAME = "MultiScreen Capturer";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = MultiScreenCapturer;
-			};
-			name = Debug;
-		};
-		E1A4E52C2D182ECD0097E575 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 8RY46C6B44;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = HNRobert.MultiScreenCapturerUITests;
-				PRODUCT_NAME = "MultiScreen Capturer";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = MultiScreenCapturer;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		E116A1F92D1C7AC4009314FB /* Build configuration list for PBXNativeTarget "MultiScreenCapturerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E116A1FA2D1C7AC4009314FB /* Debug */,
+				E116A1FB2D1C7AC4009314FB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E116A2082D1C7AFC009314FB /* Build configuration list for PBXNativeTarget "MultiScreenCapturerUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E116A2092D1C7AFC009314FB /* Debug */,
+				E116A20A2D1C7AFC009314FB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		E1A4E4F82D182ECC0097E575 /* Build configuration list for PBXProject "MultiScreenCapturer" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -534,24 +562,6 @@
 			buildConfigurations = (
 				E1A4E5252D182ECD0097E575 /* Debug */,
 				E1A4E5262D182ECD0097E575 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		E1A4E5272D182ECD0097E575 /* Build configuration list for PBXNativeTarget "MultiScreenCapturerTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				E1A4E5282D182ECD0097E575 /* Debug */,
-				E1A4E5292D182ECD0097E575 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		E1A4E52A2D182ECD0097E575 /* Build configuration list for PBXNativeTarget "MultiScreenCapturerUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				E1A4E52B2D182ECD0097E575 /* Debug */,
-				E1A4E52C2D182ECD0097E575 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
