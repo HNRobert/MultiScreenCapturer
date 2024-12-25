@@ -20,8 +20,20 @@ jobs:
 
     - name: Build
       run: |
-        xcodebuild clean build -project MultiScreenCapturer.xcodeproj -scheme MultiScreenCapturer -destination "platform=macOS"
+        xcodebuild clean build \
+          -project MultiScreenCapturer.xcodeproj \
+          -scheme MultiScreenCapturer \
+          -destination "platform=macOS" \
+          CODE_SIGN_IDENTITY="-" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO
 
     - name: Run tests
       run: |
-        xcodebuild test -project MultiScreenCapturer.xcodeproj -scheme MultiScreenCapturer -destination "platform=macOS"
+        xcodebuild test \
+          -project MultiScreenCapturer.xcodeproj \
+          -scheme MultiScreenCapturer \
+          -destination "platform=macOS" \
+          CODE_SIGN_IDENTITY="-" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO
