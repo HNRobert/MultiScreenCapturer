@@ -44,8 +44,6 @@ struct ContentView: View {
                 onCaptureButtonTapped: { viewModel.captureScreens(selectedScreenshot: $selectedScreenshot, showingMainView: $showingMainView) }
             )
         }
-        .environment(\.showingMainView, showingMainView)
-        .environment(\.selectedScreenshot, selectedScreenshot)
         .onAppear {
             viewModel.setupView()
         }
