@@ -36,4 +36,21 @@ jobs:
           -destination "platform=macOS" \
           CODE_SIGN_IDENTITY="-" \
           CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGNING_ALLOWED=NO
+          CODE_SIGNING_ALLOWED=NO \
+          -resultBundlePath TestResults.xcresult \
+          -retry-tests-on-failure || true
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results
+        path: TestResults.xcresult
+
+    - name: Process test results
+      if: always()
+      run: |
+        if grep -q "** TEST FAILED **" TestResults.xcresult/*/Diagnostics/*/diagnostics.txt; then
+          echo "Tests failed"
+          exit 1
+        fi
