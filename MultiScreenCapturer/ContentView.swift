@@ -49,7 +49,6 @@ struct ContentView: View {
         .onAppear {
             viewModel.setupView()
         }
-        .onChange(of: viewModel.columnVisibility) { _, _ in }
     }
 }
 

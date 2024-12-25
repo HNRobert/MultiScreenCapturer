@@ -5,39 +5,72 @@ extension NSImage: @unchecked @retroactive Sendable {}
 
 struct ScreenshotPreviewView: View {
     let screenshot: Screenshot
-    @Environment(\.showingMainView) private var showingMainView
-    @Environment(\.selectedScreenshot) private var selectedScreenshot
     @State private var imageProvider: ImageProvider?
-    @State private var scale: CGFloat = 1.0
+    @Binding var scale: CGFloat
     @State private var lastScale: CGFloat = 1.0
     @State private var offset: CGSize = .zero
     @State private var lastOffset: CGSize = .zero
     @State private var currentMousePosition: CGPoint = .zero
     @State private var isLoading = true
     @State private var imageOpacity: Double = 0
-    @State private var scrollViewProxy: ScrollViewProxy?
     @State private var viewSize: CGSize = .zero
-    @State private var contentSize: CGSize = .zero
     @GestureState private var isDragging: Bool = false
+    @Binding var showResetButton: Bool
+    let ref: ((ScreenshotPreviewView) -> Void)?
+    @State private var scrollProxy: ScrollViewProxy?
+    
+    init(screenshot: Screenshot, scale: Binding<CGFloat>, showResetButton: Binding<Bool>, ref: ((ScreenshotPreviewView) -> Void)? = nil) {
+        self.screenshot = screenshot
+        self._scale = scale
+        self._showResetButton = showResetButton
+        self.ref = ref
+    }
     
     private var isAtDefaultState: Bool {
-        return scale == 1.0 && offset == .zero
+        let result = scale == 1.0 && offset == .zero
+        showResetButton = !result
+        return result
     }
     
     private func scaleAround(scale: CGFloat) {
         let previousScale = self.scale
         self.scale = max(0.5, lastScale * scale)
         
-        let mousePoint = NSPoint(x: currentMousePosition.x, y: currentMousePosition.y)
-        print("Zooming around point: \(mousePoint), scale: \(self.scale)")
+        // 计算鼠标位置相对于图片的比例位置
+        let relativeX = (currentMousePosition.x - offset.width) / (viewSize.width * previousScale)
+        let relativeY = (currentMousePosition.y - offset.height) / (viewSize.height * previousScale)
         
-        // Calculate new offset based on scale change
-        let scaleChange = self.scale / previousScale
+        // 计算缩放前后的尺寸差异
+        let newWidth = viewSize.width * self.scale
+        let newHeight = viewSize.height * self.scale
+        
+        // 根据鼠标位置计算新的偏移量
         offset = CGSize(
-            width: offset.width * scaleChange,
-            height: offset.height * scaleChange
+            width: currentMousePosition.x - (newWidth * relativeX),
+            height: currentMousePosition.y - (newHeight * relativeY)
         )
         lastOffset = offset
+        
+        print("Scale: \(self.scale), Offset: \(offset), Mouse: \(currentMousePosition)")
+        
+        // 在更新 offset 后更新滚动位置
+        updateScrollPosition()
+    }
+    
+    private func updateScrollPosition() {
+        guard let scrollProxy = scrollProxy else { return }
+        
+        // 计算当前视图中心点在图片上的位置
+        let centerX = -offset.width + viewSize.width / 2
+        let centerY = -offset.height + viewSize.height / 2
+        
+        // 创建一个标识此位置的 anchor
+        let anchor = UnitPoint(x: centerX / (viewSize.width * scale),
+                             y: centerY / (viewSize.height * scale))
+        
+        withAnimation(.linear(duration: 0.1)) {
+            scrollProxy.scrollTo(anchor, anchor: .center)
+        }
     }
     
     private var dragGesture: some Gesture {
@@ -50,9 +83,11 @@ struct ScreenshotPreviewView: View {
                     width: lastOffset.width + value.translation.width,
                     height: lastOffset.height + value.translation.height
                 )
+                updateScrollPosition()
             }
             .onEnded { value in
                 lastOffset = offset
+                updateScrollPosition()
             }
     }
     
@@ -74,39 +109,46 @@ struct ScreenshotPreviewView: View {
             ZStack {
                 if let provider = imageProvider {
                     ScrollView([.horizontal, .vertical]) {
-                        provider.image
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .scaleEffect(scale)
-                            .offset(offset)
-                            .frame(width: viewSize.width, height: viewSize.height)
-                            .frame(
-                                width: max(viewSize.width * scale, viewSize.width),
-                                height: max(viewSize.height * scale, viewSize.height)
-                            )
-                            .overlay(
-                                GeometryReader { geo in
-                                    Color.clear
-                                        .contentShape(Rectangle())
-                                        .onContinuousHover { phase in
-                                            switch phase {
-                                            case .active(let location):
-                                                if !isDragging {
-                                                    currentMousePosition = CGPoint(
-                                                        x: location.x,
-                                                        y: location.y
-                                                    )
-                                                    print("Current Mouse Point: \(currentMousePosition.x), \(currentMousePosition.y)")
+                        ScrollViewReader { proxy in
+                            provider.image
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .scaleEffect(scale)
+                                .offset(offset)
+                                .frame(width: viewSize.width, height: viewSize.height)
+                                .frame(
+                                    width: max(viewSize.width * scale, viewSize.width),
+                                    height: max(viewSize.height * scale, viewSize.height)
+                                )
+                                .id(UnitPoint(x: 0.5, y: 0.5)) // 添加中心点标识
+                                .overlay(
+                                    GeometryReader { geo in
+                                        Color.clear
+                                            .contentShape(Rectangle())
+                                            .onContinuousHover { phase in
+                                                switch phase {
+                                                case .active(let location):
+                                                    if (!isDragging) {
+                                                        currentMousePosition = CGPoint(
+                                                            x: location.x,
+                                                            y: location.y
+                                                        )
+                                                        print("Current Mouse Point: \(currentMousePosition.x), \(currentMousePosition.y)")
+                                                    }
+                                                case .ended:
+                                                    break
                                                 }
-                                            case .ended:
-                                                break
                                             }
-                                        }
+                                    }
+                                )
+                                .gesture(combinedGesture)
+                                .onAppear {
+                                    scrollProxy = proxy
                                 }
-                            )
-                            .gesture(combinedGesture)
+                        }
                     }
                     .opacity(imageOpacity)
+                    .scrollDisabled(true)
                 }
                 
                 if isLoading {
@@ -114,53 +156,35 @@ struct ScreenshotPreviewView: View {
                         .scaleEffect(1.5)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-//                GeometryReader { geo in
-//                    Color.clear
-//                        .contentShape(Rectangle())
-//                        .onContinuousHover { phase in
-//                            switch phase {
-//                            case .active(let location):
-//                                if !isDragging {
-//                                    currentMousePosition = CGPoint(
-//                                        x: location.x,
-//                                        y: location.y
-//                                    )
-//                                    print("Current Mouse Point: \(currentMousePosition.x), \(currentMousePosition.y)")
-//                                }
-//                            case .ended:
-//                                break
-//                            }
-//                        }
-//                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .overlay(alignment: .topTrailing) {
-                if !isAtDefaultState {
-                    Button(action: resetView) {
-                        Image(systemName: "arrow.counterclockwise")
-                            .padding(8)
-                    }
-                    .buttonStyle(.borderless)
-                    .padding()
-                }
-            }
-            .onPreferenceChange(ContentSizePreferenceKey.self) { size in
-                contentSize = size
-            }
             .background(
                 GeometryReader { geo in
-                    Color.clear.onAppear {
-                        viewSize = geo.size
-                    }
+                    Color.clear
+                        .onAppear {
+                            viewSize = geo.size
+                        }
+                        .onChange(of: geo.size) { _, newSize in
+                            if viewSize != newSize {
+                                viewSize = newSize
+                            }
+                            scaleAround(scale: 1.0)
+                        }
                 }
             )
         }
-        // 添加初始布局逻辑
         .onAppear {
+            ref?(self)
             loadImageAsync()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 resetView()
             }
+        }
+        .onChange(of: scale) { _, _ in
+            _ = isAtDefaultState
+        }
+        .onChange(of: offset) { _, _ in
+            _ = isAtDefaultState
         }
         .onChange(of: screenshot) { _, _ in
             resetView()
@@ -198,24 +222,10 @@ struct ScreenshotPreviewView: View {
         }
     }
     
-    private func resetView() {
+    func resetView() {
         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-            // 计算适合视图大小的初始缩放比例
-            if let provider = imageProvider {
-                let imageSize = provider.nsImage.size
-                let viewAspect = viewSize.width / viewSize.height
-                let imageAspect = imageSize.width / imageSize.height
-                
-                if imageAspect > viewAspect {
-                    scale = viewSize.width / imageSize.width
-                } else {
-                    scale = viewSize.height / imageSize.height
-                }
-                lastScale = scale
-            } else {
-                scale = 1.0
-                lastScale = 1.0
-            }
+            scale = 1.0
+            lastScale = 1.0
             offset = .zero
             lastOffset = .zero
         }
@@ -230,13 +240,5 @@ private struct ImageProvider {
     init(nsImage: NSImage) {
         self.image = Image(nsImage: nsImage)
         self.nsImage = nsImage
-    }
-}
-
-private struct ContentSizePreferenceKey: PreferenceKey {
-    static var defaultValue: CGSize = .zero
-    
-    static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
-        value = nextValue()
     }
 }

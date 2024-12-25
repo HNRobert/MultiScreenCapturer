@@ -11,6 +11,9 @@ struct DetailView: View {
     let onSaveButtonTapped: () -> Void
     let onShareButtonTapped: () -> Void
     let onCaptureButtonTapped: () -> Void
+    @State private var currentScale: CGFloat = 1.0
+    @State private var showResetButton: Bool = false
+    @State private var previewViewRef: ScreenshotPreviewView?
     
     var body: some View {
         Group {
@@ -30,7 +33,12 @@ struct DetailView: View {
                     }
                 }
             } else if let screenshot = selectedScreenshot {
-                ScreenshotPreviewView(screenshot: screenshot)
+                ScreenshotPreviewView(
+                    screenshot: screenshot,
+                    scale: $currentScale,
+                    showResetButton: $showResetButton,
+                    ref: { view in previewViewRef = view }
+                )
                     .transition(.opacity)
                     .toolbar {
                         ToolbarItem(placement: .navigation) {
@@ -42,7 +50,10 @@ struct DetailView: View {
                             onDeleteButtonTapped: onDeleteButtonTapped,
                             onSaveButtonTapped: onSaveButtonTapped,
                             onShareButtonTapped: onShareButtonTapped,
-                            isDeletingScreenshot: isDeletingScreenshot
+                            onResetButtonTapped: { previewViewRef?.resetView() },
+                            isDeletingScreenshot: isDeletingScreenshot,
+                            scale: currentScale,
+                            showResetButton: showResetButton
                         )
                     }
             }

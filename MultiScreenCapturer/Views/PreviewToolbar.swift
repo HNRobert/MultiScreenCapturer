@@ -4,7 +4,10 @@ struct PreviewToolbar: ToolbarContent {
     let onDeleteButtonTapped: () -> Void
     let onSaveButtonTapped: () -> Void
     let onShareButtonTapped: () -> Void
+    let onResetButtonTapped: () -> Void
     let isDeletingScreenshot: Bool
+    let scale: CGFloat
+    let showResetButton: Bool
     
     var body: some ToolbarContent {
         ToolbarItemGroup(placement: .primaryAction) {
@@ -20,6 +23,18 @@ struct PreviewToolbar: ToolbarContent {
                 Label("Delete", systemImage: "trash")
             }
             .disabled(isDeletingScreenshot)
+        }
+        
+        ToolbarItemGroup(placement: .principal) {
+            Text("\(Int(scale * 100))%")
+                .monospacedDigit()
+                .frame(minWidth: 50)
+            if showResetButton {
+                Button(action: onResetButtonTapped) {
+                    Image(systemName: "arrow.counterclockwise")
+                }
+                .buttonStyle(.borderless)
+            }
         }
     }
 }

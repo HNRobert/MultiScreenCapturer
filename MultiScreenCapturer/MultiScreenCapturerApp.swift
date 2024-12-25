@@ -17,7 +17,6 @@ class WindowDelegate: NSObject, NSWindowDelegate {
 
 @main
 struct MultiScreenCapturerApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     private let windowDelegate = WindowDelegate()
     
     var body: some Scene {
@@ -27,20 +26,12 @@ struct MultiScreenCapturerApp: App {
                 .background {
                     WindowAccessor { window in
                         window.delegate = windowDelegate
-                        window.standardWindowButton(.closeButton)?.target = window
-                        window.standardWindowButton(.closeButton)?.action = #selector(NSWindow.close)
                     }
                 }
         }
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified)
         .defaultSize(width: 800, height: 600)
-    }
-}
-
-class AppDelegate: NSObject, NSApplicationDelegate {
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        return true
     }
 }
 
