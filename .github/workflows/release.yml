@@ -24,16 +24,29 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      - name: Build App
+      - name: Set up signing
+        run: |
+          security create-keychain -p "" build.keychain
+          security list-keychains -s build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+
+      - name: Build and Archive App
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
         run: |
           xcodebuild clean archive \
             -project MultiScreenCapturer.xcodeproj \
             -scheme MultiScreenCapturer \
             -configuration Release \
             -archivePath ./build/MultiScreenCapturer.xcarchive \
+            CODE_SIGN_STYLE=Automatic \
+            DEVELOPMENT_TEAM="" \
             CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+            PROVISIONING_PROFILE_SPECIFIER=""
 
       - name: Create App Bundle
         run: |
@@ -50,3 +63,5 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
