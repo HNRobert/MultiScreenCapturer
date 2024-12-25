@@ -21,12 +21,24 @@ struct DetailView: View {
                     captureAction: onCaptureButtonTapped
                 )
                 .transition(.opacity)
+                .toolbar {
+                    ToolbarItem(placement: .navigation) {
+                        Button(action: onHomeButtonTapped) {
+                            Label("Settings", systemImage: "gear")
+                        }
+                        .disabled(true)
+                    }
+                }
             } else if let screenshot = selectedScreenshot {
                 ScreenshotPreviewView(screenshot: screenshot)
                     .transition(.opacity)
                     .toolbar {
+                        ToolbarItem(placement: .navigation) {
+                            Button(action: onHomeButtonTapped) {
+                                Label("Settings", systemImage: "gear")
+                            }
+                        }
                         PreviewToolbar(
-                            onHomeButtonTapped: onHomeButtonTapped,
                             onDeleteButtonTapped: onDeleteButtonTapped,
                             onSaveButtonTapped: onSaveButtonTapped,
                             onShareButtonTapped: onShareButtonTapped,

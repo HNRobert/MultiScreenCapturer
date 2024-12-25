@@ -17,34 +17,15 @@ class WindowDelegate: NSObject, NSWindowDelegate {
 
 @main
 struct MultiScreenCapturerApp: App {
-    @State private var windowTitle = "MultiScreen Capturer"
     private let windowDelegate = WindowDelegate()
     
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .onAppear {
-                    setupWindow()
-                }
-                .environment(\.windowTitle, windowTitle)
+                .navigationTitle("MultiScreen Capturer")
         }
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified)
         .defaultSize(width: 800, height: 600)
-    }
-    
-    private func setupWindow() {
-        guard let window = NSApp.windows.first else { return }
-        window.delegate = windowDelegate
-        window.title = windowTitle
-        
-        // 确保窗口标题正确显示
-        NotificationCenter.default.addObserver(
-            forName: NSWindow.didBecomeMainNotification,
-            object: window,
-            queue: .main
-        ) { _ in
-            window.title = windowTitle
-        }
     }
 }

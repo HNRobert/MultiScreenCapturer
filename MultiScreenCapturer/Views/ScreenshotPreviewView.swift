@@ -4,6 +4,8 @@ extension NSImage: @unchecked @retroactive Sendable {}
 
 struct ScreenshotPreviewView: View {
     let screenshot: Screenshot
+    @Environment(\.showingMainView) private var showingMainView
+    @Environment(\.selectedScreenshot) private var selectedScreenshot
     @State private var imageProvider: ImageProvider?
     @State private var scale: CGFloat = 1.0
     @State private var lastScale: CGFloat = 1.0

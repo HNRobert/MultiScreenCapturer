@@ -285,7 +285,6 @@ class ScreenCapturer {
             return cached
         }
         
-        // 添加文件存在检查
         guard FileManager.default.fileExists(atPath: filepath) else {
             print("Thumbnail file not found at path: \(filepath)")
             return nil
