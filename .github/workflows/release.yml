@@ -8,6 +8,8 @@ on:
 jobs:
   setup:
     runs-on: macos-latest
+    outputs:
+      version: ${{ steps.version.outputs.VERSION }}
     steps:
       - name: Get version from tag
         id: version
@@ -35,6 +37,7 @@ jobs:
 
       - name: Build and Archive App
         env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
         run: |
@@ -44,8 +47,8 @@ jobs:
             -configuration Release \
             -archivePath ./build/MultiScreenCapturer.xcarchive \
             CODE_SIGN_STYLE=Automatic \
-            DEVELOPMENT_TEAM="" \
-            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM=$TEAM_ID \
+            CODE_SIGN_IDENTITY="Apple Development" \
             PROVISIONING_PROFILE_SPECIFIER=""
 
       - name: Create App Bundle
