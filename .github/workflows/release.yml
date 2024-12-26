@@ -41,17 +41,12 @@ jobs:
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
-          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           xcodebuild clean archive \
             -project MultiScreenCapturer.xcodeproj \
             -scheme MultiScreenCapturer \
             -configuration Release \
             -archivePath ./build/MultiScreenCapturer.xcarchive \
-            CODE_SIGN_STYLE=Automatic \
-            DEVELOPMENT_TEAM=$TEAM_ID \
-            CODE_SIGN_IDENTITY="Apple Development" \
-            PROVISIONING_PROFILE_SPECIFIER=""
 
       - name: Create App Bundle
         run: |
