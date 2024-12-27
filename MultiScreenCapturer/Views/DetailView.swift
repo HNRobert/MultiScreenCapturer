@@ -51,7 +51,6 @@ struct DetailView: View {
                 .onChange(of: screenshot) { _, newScreenshot in
                     guard currentScreenshot != newScreenshot else { return }
                     
-                    // 等待前一个动画完成后再开始新的动画
                     if previewOpacity < 1 {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                             currentScreenshot = newScreenshot
@@ -82,18 +81,13 @@ struct DetailView: View {
                             Label("Settings", systemImage: "gear")
                         }
                     }
-                    ToolbarItemGroup(placement: .primaryAction) {
-                        Button(action: onShareButtonTapped) {
-                            Label("Share", systemImage: "square.and.arrow.up")
-                        }
-                        Button(action: onSaveButtonTapped) {
-                            Label("Save", systemImage: "square.and.arrow.down")
-                        }
-                        Button(action: onDeleteButtonTapped) {
-                            Label("Delete", systemImage: "trash")
-                        }
-                        .disabled(isDeletingScreenshot)
-                    }
+                    
+                    PreviewToolbar(
+                        onDeleteButtonTapped: onDeleteButtonTapped,
+                        onSaveButtonTapped: onSaveButtonTapped,
+                        onShareButtonTapped: onShareButtonTapped,
+                        isDeletingScreenshot: isDeletingScreenshot
+                    )
                 }
             }
         }

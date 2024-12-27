@@ -23,19 +23,25 @@ jobs:
       - name: Generate Release Notes
         id: release_notes
         run: |
+          CURRENT_TAG=${GITHUB_REF#refs/tags/}
           LAST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
           
           if [ -z "$LAST_TAG" ]; then
             COMMITS=$(git log --pretty=format:"- %s" --no-merges)
+            COMPARE_LINK="https://github.com/${{ github.repository }}/commits/${CURRENT_TAG}"
           else
             COMMITS=$(git log ${LAST_TAG}..HEAD --pretty=format:"- %s" --no-merges)
+            COMPARE_LINK="https://github.com/${{ github.repository }}/compare/${LAST_TAG}...${CURRENT_TAG}"
           fi
           
           echo "NOTES<<EOF" >> $GITHUB_OUTPUT
-          echo "Release ${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          echo "## Release ${CURRENT_TAG}" >> $GITHUB_OUTPUT
           echo "" >> $GITHUB_OUTPUT
           echo "Changes in this release:" >> $GITHUB_OUTPUT
           echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "---" >> $GITHUB_OUTPUT
+          echo "See full changelogs: [${LAST_TAG}...${CURRENT_TAG}](${COMPARE_LINK})" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
   build:

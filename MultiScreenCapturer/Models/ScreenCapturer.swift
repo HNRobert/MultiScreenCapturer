@@ -51,6 +51,62 @@ class ScreenCapturer {
         return shadow
     }()
     
+    private static func areScreensAdjacent(_ screen1: NSScreen, _ screen2: NSScreen) -> (horizontal: Bool, vertical: Bool) {
+        let frame1 = screen1.frame
+        let frame2 = screen2.frame
+        
+        // Check if screens overlap in vertical direction
+        let verticalOverlap = frame1.minY < frame2.maxY && frame2.minY < frame1.maxY
+        // Check if screens overlap in horizontal direction
+        let horizontalOverlap = frame1.minX < frame2.maxX && frame2.minX < frame1.maxX
+        
+        // Check if screens are adjacent horizontally
+        let horizontalAdjacent = verticalOverlap && (
+            abs(frame1.maxX - frame2.minX) < 1 || abs(frame2.maxX - frame1.minX) < 1
+        )
+        
+        // Check if screens are adjacent vertically
+        let verticalAdjacent = horizontalOverlap && (
+            abs(frame1.maxY - frame2.minY) < 1 || abs(frame2.maxY - frame1.minY) < 1
+        )
+        
+        return (horizontalAdjacent, verticalAdjacent)
+    }
+    
+    private static func calculateAdjustedScreenPositions(screens: [NSScreen], spacing: CGFloat) -> [NSScreen: NSPoint] {
+        var adjustedPositions: [NSScreen: NSPoint] = [:]
+        
+        // Initialize with original positions
+        for screen in screens {
+            adjustedPositions[screen] = NSPoint(x: screen.frame.minX, y: screen.frame.minY)
+        }
+        
+        // Calculate adjustments
+        for i in 0..<screens.count-1 {
+            for j in (i+1)..<screens.count {
+                let screen1 = screens[i]
+                let screen2 = screens[j]
+                let adjacent = areScreensAdjacent(screen1, screen2)
+                
+                if adjacent.horizontal || adjacent.vertical {
+                    let frame1 = screen1.frame
+                    let frame2 = screen2.frame
+                    
+                    // If screen2 is to the right of screen1
+                    if frame2.minX > frame1.minX && adjacent.horizontal {
+                        adjustedPositions[screen2]?.x += spacing
+                    }
+                    // If screen2 is below screen1
+                    if frame2.minY > frame1.minY && adjacent.vertical {
+                        adjustedPositions[screen2]?.y += spacing
+                    }
+                }
+            }
+        }
+        
+        return adjustedPositions
+    }
+
     static func captureAllScreens(with settings: CaptureSettings = .init(
         cornerStyle: .none,
         cornerRadius: 35,
@@ -62,26 +118,30 @@ class ScreenCapturer {
     )) -> NSImage? {
         let screens = NSScreen.screens
         let scale = getResolutionScale(for: settings.resolutionStyle, screens: screens)
-
-        // Calculate total frame with spacing
+        let spacing = CGFloat(settings.screenSpacing)
+        
+        // Calculate adjusted positions
+        let adjustedPositions = calculateAdjustedScreenPositions(screens: screens, spacing: spacing)
+        
+        // Calculate total frame with adjusted positions
         var minX: CGFloat = .infinity
         var minY: CGFloat = .infinity
         var maxX: CGFloat = -.infinity
         var maxY: CGFloat = -.infinity
-
+        
         for screen in screens {
             let frame = screen.frame
-            minX = min(minX, frame.minX)
-            minY = min(minY, frame.minY)
-            maxX = max(maxX, frame.maxX)
-            maxY = max(maxY, frame.maxY)
+            let adjustedPosition = adjustedPositions[screen] ?? frame.origin
+            minX = min(minX, adjustedPosition.x)
+            minY = min(minY, adjustedPosition.y)
+            maxX = max(maxX, adjustedPosition.x + frame.width)
+            maxY = max(maxY, adjustedPosition.y + frame.height)
         }
 
-        let spacing = CGFloat(settings.screenSpacing)
         let totalFrame = NSRect(
             x: 0, y: 0,
-            width: (maxX - minX + spacing) * scale,
-            height: (maxY - minY + spacing) * scale
+            width: (maxX - minX) * scale,
+            height: (maxY - minY) * scale
         )
 
         guard let bitmapRep = NSBitmapImageRep(
@@ -106,9 +166,10 @@ class ScreenCapturer {
             if let displayId = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID,
                let screenShot = CGDisplayCreateImage(displayId) {
                 let frame = screen.frame
+                let adjustedPosition = adjustedPositions[screen] ?? frame.origin
                 let relativeFrame = CGRect(
-                    x: (frame.origin.x - minX + spacing) * scale,
-                    y: (frame.origin.y - minY + spacing) * scale,
+                    x: (adjustedPosition.x - minX) * scale,
+                    y: (adjustedPosition.y - minY) * scale,
                     width: frame.width * scale,
                     height: frame.height * scale
                 )

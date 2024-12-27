@@ -22,7 +22,8 @@ struct ContentView: View {
                 newScreenshotID: viewModel.newScreenshotID,
                 captureLoadingOpacity: viewModel.captureLoadingOpacity,
                 processingCapture: viewModel.processingCapture,
-                onCaptureButtonTapped: { viewModel.captureScreens(selectedScreenshot: $selectedScreenshot, showingMainView: $showingMainView) }
+                onCaptureButtonTapped: { viewModel.captureScreens(selectedScreenshot: $selectedScreenshot, showingMainView: $showingMainView) },
+                isLoading: viewModel.isLoadingScreenshots
             )
             .frame(minWidth: 180)
             .onChange(of: selectedScreenshot) { _, newValue in

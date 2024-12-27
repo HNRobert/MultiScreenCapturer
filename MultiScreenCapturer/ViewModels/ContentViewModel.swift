@@ -10,6 +10,8 @@ class ContentViewModel: ObservableObject {
     @Published var captureLoadingOpacity: Double = 0
     @Published var newScreenshotID: UUID?
     @Published var processingCapture = false
+    @Published private var wasWindowHidden = false
+    @Published var isLoadingScreenshots = true
     
     @AppStorage("cornerStyle") private var cornerStyle = ScreenCornerStyle.none
     @AppStorage("screenSpacing") private var screenSpacing: Double = 10
@@ -21,13 +23,27 @@ class ContentViewModel: ObservableObject {
     @AppStorage("autoSavePath") private var autoSavePath = ""
     
     func setupView() {
-        loadScreenshots()
+        isLoadingScreenshots = true
+        Task.detached(priority: .userInitiated) { [weak self] in
+            let loadedScreenshots = Screenshot.loadAllScreenshots()
+            
+            for screenshot in loadedScreenshots {
+                _ = ScreenCapturer.loadThumbnail(from: screenshot.filepath)
+            }
+            
+            await MainActor.run {
+                self?.screenshots = loadedScreenshots
+                self?.isLoadingScreenshots = false
+            }
+        }
     }
     
     func captureScreens(selectedScreenshot: Binding<Screenshot?>, showingMainView: Binding<Bool>) {
         isCapturing = true
+        wasWindowHidden = false
         
         if hideWindowBeforeCapture {
+            wasWindowHidden = true
             NSApp.mainWindow?.miniaturize(nil)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 self.performCapture(selectedScreenshot: selectedScreenshot, showingMainView: showingMainView)
@@ -110,6 +126,12 @@ class ContentViewModel: ObservableObject {
                     self.newScreenshotID = nil
                 }
                 
+                // Restore window if it was hidden
+                if wasWindowHidden {
+                    NSApp.mainWindow?.deminiaturize(nil)
+                    wasWindowHidden = false
+                }
+                
                 self.processingCapture = false
                 self.isCapturing = false
             }
@@ -163,14 +185,6 @@ class ContentViewModel: ObservableObject {
     }
     
     private func loadScreenshots() {
-        Task {
-            let loadedScreenshots = await Task.detached {
-                return Screenshot.loadAllScreenshots()
-            }.value
-            
-            await MainActor.run {
-                screenshots = loadedScreenshots
-            }
-        }
+        // 移除旧的loadScreenshots方法，因为已经整合到setupView中
     }
 }
