@@ -11,18 +11,29 @@ struct SaveSettingsGroup: View {
                 Toggle("Copy Screenshot to Clipboard after Capturing", isOn: $copyToClipboard)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 
-                Toggle("Automatically Save Screenshot to ... after Capturing", isOn: $autoSaveEnabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                
-                if autoSaveEnabled {
-                    HStack(spacing: 8) {
+                HStack {
+                    Toggle(isOn: $autoSaveEnabled) {
+                        if autoSaveEnabled {
+                            Text("Automatically Save Screenshot to")
+                        } else {
+                            Text("Automatically Save Screenshot to ... after Capturing")
+                        }
+                    }.padding(.vertical, 3)
+                    .onChange(of: autoSaveEnabled) { _, isEnabled in
+                        if isEnabled && autoSavePath.isEmpty {
+                            selectSavePath()
+                        }
+                    }
+                    if autoSaveEnabled {
                         TextField("Save Path", text: $autoSavePath)
+                            .frame(maxWidth: .infinity)
                         Button("Browse") {
                             selectSavePath()
                         }
                         .frame(width: 80)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)

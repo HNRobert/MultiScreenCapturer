@@ -8,9 +8,10 @@ struct CaptureSettings {
     let enableShadow: Bool
     let resolutionStyle: ResolutionStyle
     let copyToClipboard: Bool
-    let autoSaveToPath: String?
     let hideWindowBeforeCapture: Bool
     let mainWindow: NSWindow?
+    let autoSaveEnabled: Bool
+    let autoSavePath: String
 }
 
 class ScreenCapturer {
@@ -117,10 +118,11 @@ class ScreenCapturer {
         enableShadow: true,
         resolutionStyle: .highestDPI,
         copyToClipboard: false,
-        autoSaveToPath: nil,
         hideWindowBeforeCapture: false,
-        mainWindow: nil
-    )) -> NSImage? {
+        mainWindow: nil,
+        autoSaveEnabled: false,
+        autoSavePath: ""
+    )) -> Screenshot? {
         // Temporarily hide window if needed
         var isWindowHidden = false
         if settings.hideWindowBeforeCapture {
@@ -247,8 +249,8 @@ class ScreenCapturer {
 
         NSGraphicsContext.restoreGraphicsState()
 
-        let finalImage = NSImage(size: totalFrame.size)
-        finalImage.addRepresentation(bitmapRep)
+        let outPutImage = NSImage(size: totalFrame.size)
+        outPutImage.addRepresentation(bitmapRep)
 
         // Restore window visibility
         if settings.hideWindowBeforeCapture && isWindowHidden {
@@ -258,34 +260,63 @@ class ScreenCapturer {
         }
 
         if settings.copyToClipboard {
-            copyToClipboard(finalImage)
+            copyToClipboard(outPutImage)
         }
+        
+        let finalImage = saveToSandbox(outPutImage)
 
-        if let path = settings.autoSaveToPath {
-            saveToPath(finalImage, path: path)
+        if settings.autoSaveEnabled && !settings.autoSavePath.isEmpty {
+            if let finalImage = finalImage {
+                let autoSavePath = settings.autoSavePath
+                let sourceFilename = (finalImage.filepath as NSString).lastPathComponent
+                let autoSaveURL = URL(fileURLWithPath: autoSavePath).appendingPathComponent(sourceFilename)
+                do {
+                    try FileManager.default.copyItem(atPath: finalImage.filepath, toPath: autoSaveURL.path)
+                } catch let error {
+                    DispatchQueue.main.async {
+                        let alert = NSAlert()
+                        alert.messageText = "Failed to save screenshot at \(autoSavePath)"
+                        alert.informativeText = error.localizedDescription
+                        alert.alertStyle = .warning
+                        alert.addButton(withTitle: "OK")
+                        alert.runModal()
+                    }
+                }
+            }
         }
 
         return finalImage
     }
 
-    static func saveScreenshot(_ image: NSImage) {
-        let savePanel = NSSavePanel()
-        savePanel.allowedContentTypes = [.png]
-        savePanel.nameFieldStringValue = "screenshot.png"
-
-        guard let mainWindow = NSApp.mainWindow else { return }
-        savePanel.beginSheetModal(for: mainWindow) { response in
-            if response == .OK {
-                guard let url = savePanel.url else { return }
-
-                if let tiffData = image.tiffRepresentation,
-                    let bitmapImage = NSBitmapImageRep(data: tiffData),
-                    let pngData = bitmapImage.representation(using: .png, properties: [:])
-                {
-                    try? pngData.write(to: url)
+    static func saveScreenshot(_ screenshot: Screenshot) {
+        let panel = NSSavePanel()
+        panel.allowedFileTypes = ["png"]
+        panel.nameFieldStringValue = (screenshot.filepath as NSString).lastPathComponent + ".png"
+        panel.begin { response in
+            if response == .OK, let url = panel.url {
+                do {
+                    try FileManager.default.copyItem(atPath: screenshot.filepath, toPath: url.path)
+                } catch {
+                    DispatchQueue.main.async {
+                        let alert = NSAlert()
+                        alert.messageText = "Failed to save screenshot at \(url.path)"
+                        alert.informativeText = error.localizedDescription
+                        alert.alertStyle = .warning
+                        alert.addButton(withTitle: "OK")
+                        alert.runModal()
+                    }
                 }
             }
         }
+    }
+
+    private static func convertToPNGData(_ image: NSImage) -> Data? {
+        guard let tiffData = image.tiffRepresentation,
+              let bitmapImage = NSBitmapImageRep(data: tiffData),
+              let pngData = bitmapImage.representation(using: .png, properties: [:]) else {
+            return nil
+        }
+        return pngData
     }
 
     static func saveToSandbox(_ image: NSImage) -> Screenshot? {
@@ -306,10 +337,7 @@ class ScreenCapturer {
         let filename = "screenshot-\(formatter.string(from: now)).png"
         let fileURL = documentDirectory.appendingPathComponent(filename)
 
-        if let tiffData = image.tiffRepresentation,
-           let bitmapImage = NSBitmapImageRep(data: tiffData),
-           let pngData = bitmapImage.representation(using: .png, properties: [:])
-        {
+        if let pngData = convertToPNGData(image) {
             do {
                 try pngData.write(to: fileURL)
                 return Screenshot(
@@ -323,7 +351,6 @@ class ScreenCapturer {
             }
         }
 
-        print("Failed to convert image to PNG")
         return nil
     }
 
@@ -378,25 +405,13 @@ class ScreenCapturer {
     }
 
     static func copyToClipboard(_ image: NSImage) {
-        if let tiffData = image.tiffRepresentation,
-           let bitmapImage = NSBitmapImageRep(data: tiffData) {
+        if let tiffData = image.tiffRepresentation {
             NSPasteboard.general.clearContents()
             
-            if let pngData = bitmapImage.representation(using: .png, properties: [:]) {
+            if let pngData = convertToPNGData(image) {
                 NSPasteboard.general.setData(pngData, forType: .png)
             }
-            
             NSPasteboard.general.setData(tiffData, forType: .tiff)
-        }
-    }
-    
-    static func saveToPath(_ image: NSImage, path: String) {
-        if let tiffData = image.tiffRepresentation,
-           let bitmapImage = NSBitmapImageRep(data: tiffData),
-           let pngData = bitmapImage.representation(using: .png, properties: [:]) {
-            let url = URL(fileURLWithPath: path)
-                .appendingPathComponent("screenshot-\(Date().timeIntervalSince1970).png")
-            try? pngData.write(to: url)
         }
     }
 }

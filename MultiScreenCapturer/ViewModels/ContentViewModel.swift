@@ -55,9 +55,10 @@ class ContentViewModel: ObservableObject {
                 enableShadow: enableShadow,
                 resolutionStyle: resolutionStyle,
                 copyToClipboard: copyToClipboard,
-                autoSaveToPath: autoSaveEnabled ? autoSavePath : nil,
                 hideWindowBeforeCapture: hideWindowBeforeCapture,
-                mainWindow: NSApp.mainWindow
+                mainWindow: NSApp.mainWindow,
+                autoSaveEnabled: autoSaveEnabled,
+                autoSavePath: autoSavePath
             )
             
             let screenshot = await Task.detached {
@@ -72,70 +73,47 @@ class ContentViewModel: ObservableObject {
                 return
             }
             
-            // Save to sandbox on background thread
-            let saved = await Task.detached {
-                return ScreenCapturer.saveToSandbox(screenshot as! NSImage)
-            }.value
-            
-            guard let saved = saved else {
-                await MainActor.run { processingCapture = false }
-                return
-            }
-            
-            // Handle clipboard on background thread if needed
-            if settings.copyToClipboard {
-                await Task.detached {
-                    if let pngData = try? Data(contentsOf: URL(fileURLWithPath: saved.filepath)),
-                       let image = NSImage(data: pngData) {
-                        ScreenCapturer.copyToClipboard(image)
-                    }
-                }.value
-            }
-            
-            // Handle auto-save on background thread if needed
-            if let path = settings.autoSaveToPath {
-                await Task.detached {
-                    ScreenCapturer
-                        .saveToPath(screenshot as! NSImage, path: path)
-                }.value
-            }
-            
             // Update UI on main thread
             await MainActor.run { [self] in
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    self.screenshots.insert(saved, at: 0)
-                    self.newScreenshotID = saved.id
-                    selectedScreenshot.wrappedValue = saved
-                    showingMainView.wrappedValue = false
-                    self.captureLoadingOpacity = 0
-                }
-                
-                // Fade in the new screenshot
-                withAnimation(.easeIn(duration: 0.5).delay(0.2)) {
-                    self.captureLoadingOpacity = 1
-                }
-                
-                // Reset animation states after longer delay
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [self] in
-                    self.newScreenshotID = nil
-                }
-                
-                // Restore window if it was hidden
-                if wasWindowHidden {
-                    DispatchQueue.main.async {
-                        if let window = NSApp.mainWindow {
-                            window.deminiaturize(nil)
-                            window.makeKeyAndOrderFront(nil)
-                            NSApp.activate(ignoringOtherApps: true)
-                        }
-                    }
-                    wasWindowHidden = false
-                }
-                
-                self.processingCapture = false
-                self.isCapturing = false
+                updateUIAfterCapture(
+                    screenshot,
+                    selectedScreenshot: selectedScreenshot,
+                    showingMainView: showingMainView
+                )
             }
         }
+    }
+    
+    private func updateUIAfterCapture(_ screenshot: Screenshot, selectedScreenshot: Binding<Screenshot?>, showingMainView: Binding<Bool>) {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            self.screenshots.insert(screenshot, at: 0)
+            self.newScreenshotID = screenshot.id
+            selectedScreenshot.wrappedValue = screenshot
+            showingMainView.wrappedValue = false
+            self.captureLoadingOpacity = 0
+        }
+        
+        withAnimation(.easeIn(duration: 0.5).delay(0.2)) {
+            self.captureLoadingOpacity = 1
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            self.newScreenshotID = nil
+        }
+        
+        if wasWindowHidden {
+            DispatchQueue.main.async {
+                if let window = NSApp.mainWindow {
+                    window.deminiaturize(nil)
+                    window.makeKeyAndOrderFront(nil)
+                    NSApp.activate(ignoringOtherApps: true)
+                }
+            }
+            wasWindowHidden = false
+        }
+        
+        self.processingCapture = false
+        self.isCapturing = false
     }
     
     func shareScreenshot(_ screenshot: Screenshot?) {
@@ -148,12 +126,19 @@ class ContentViewModel: ObservableObject {
     }
     
     func saveScreenshot(_ screenshot: Screenshot?) async {
-        guard let screenshot = screenshot,
-              let image = await ScreenCapturer.loadImage(from: screenshot.filepath) else {
+        guard let screenshot = screenshot else { 
+            // Show error message
+            DispatchQueue.main.async {
+                let alert = NSAlert()
+                alert.messageText = "Failed to save screenshot"
+                alert.informativeText = "Screenshot not found"
+                alert.alertStyle = .warning
+                alert.addButton(withTitle: "OK")
+                alert.runModal()
+            }
             return
         }
-        
-        ScreenCapturer.saveScreenshot(image)
+        ScreenCapturer.saveScreenshot(screenshot)
     }
     
     func deleteSelectedScreenshot(_ screenshot: Screenshot?, selectedScreenshot: Binding<Screenshot?>, showingMainView: Binding<Bool>) {
