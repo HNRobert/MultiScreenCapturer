@@ -39,7 +39,6 @@ struct MultiScreenCapturerApp: App {
     }
 }
 
-// Helper view to access NSWindow
 struct WindowAccessor: NSViewRepresentable {
     let callback: (NSWindow) -> Void
     

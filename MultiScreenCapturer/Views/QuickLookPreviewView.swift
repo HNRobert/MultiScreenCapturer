@@ -21,20 +21,16 @@ struct QuickLookPreviewView: NSViewRepresentable {
                 currentURL = url
                 parent.isLoading = true
                 
-                // Make sure the preview item is hidden before changing it
                 NSAnimationContext.runAnimationGroup { context in
                     context.duration = 0.2
                     context.timingFunction = .init(name: .easeOut)
                     preview?.layer?.opacity = 0
                 } completionHandler: {
-                    // Clear the preview item to avoid flickering
                     self.preview?.previewItem = nil
                     
-                    // Delay the preview item update to avoid flickering
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                         self.preview?.previewItem = url as QLPreviewItem
                         
-                        // Wait for the preview item to load before showing it
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                             NSAnimationContext.runAnimationGroup { context in
                                 context.duration = 0.3
@@ -49,7 +45,6 @@ struct QuickLookPreviewView: NSViewRepresentable {
             }
         }
         
-        // QLPreviewPanelDataSource
         func numberOfPreviewItems(in panel: QLPreviewPanel!) -> Int {
             return currentURL != nil ? 1 : 0
         }
@@ -67,7 +62,7 @@ struct QuickLookPreviewView: NSViewRepresentable {
         let preview = QLPreviewView()
         preview.autostarts = true
         preview.wantsLayer = true
-        preview.layer?.opacity = 0  // Hide the preview item initially
+        preview.layer?.opacity = 0
         context.coordinator.preview = preview
         context.coordinator.updatePreview(with: url)
         return preview

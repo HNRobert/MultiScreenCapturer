@@ -15,14 +15,12 @@ final class MultiScreenCapturerTests: XCTestCase {
         delegate.shouldTerminateOnClose = false  // Disable termination in tests
         let window = NSWindow()
         
-        // Test window closing behavior
         XCTAssertTrue(delegate.windowShouldClose(window))
     }
     
     func testWindowAccessor() {
         let expectation = XCTestExpectation(description: "Window callback called")
         
-        // Create the test view hierarchy
         let testWindow = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 100, height: 100),
             styleMask: [.titled, .closable],
@@ -41,7 +39,6 @@ final class MultiScreenCapturerTests: XCTestCase {
         let hostingView = NSHostingView(rootView: accessor)
         testWindow.contentView?.addSubview(hostingView)
         
-        // Wait for the callback
         wait(for: [expectation], timeout: 1.0)
     }
 }

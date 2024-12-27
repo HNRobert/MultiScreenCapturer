@@ -46,16 +46,6 @@
 			path = MultiScreenCapturer;
 			sourceTree = "<group>";
 		};
-		E1A4E5132D182ECD0097E575 /* MultiScreenCapturerTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = MultiScreenCapturerTests;
-			sourceTree = "<group>";
-		};
-		E1A4E51D2D182ECD0097E575 /* MultiScreenCapturerUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = MultiScreenCapturerUITests;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -88,8 +78,6 @@
 			children = (
 				E135B14A2D1E8D4D00864F55 /* MultiScreenCapturer.xctestplan */,
 				E1A4E4FF2D182ECC0097E575 /* MultiScreenCapturer */,
-				E1A4E5132D182ECD0097E575 /* MultiScreenCapturerTests */,
-				E1A4E51D2D182ECD0097E575 /* MultiScreenCapturerUITests */,
 				E116A1F42D1C7AC4009314FB /* MultiScreenCapturerTests */,
 				E116A2012D1C7AFC009314FB /* MultiScreenCapturerUITests */,
 				E1A4E4FE2D182ECC0097E575 /* Products */,
@@ -498,7 +486,7 @@
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"MultiScreenCapturer/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=macosx*]" = 8RY46C6B44;
 				ENABLE_APP_SANDBOX = NO;
@@ -536,7 +524,7 @@
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"MultiScreenCapturer/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=macosx*]" = 8RY46C6B44;
 				ENABLE_APP_SANDBOX = NO;
