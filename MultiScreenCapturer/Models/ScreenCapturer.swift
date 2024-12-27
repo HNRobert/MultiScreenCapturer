@@ -55,7 +55,7 @@ class ScreenCapturer {
         return shadow
     }()
     
-    private static func areScreensAdjacent(_ screen1: NSScreen, _ screen2: NSScreen) -> (horizontal: Bool, vertical: Bool) {
+    private static func areScreensAdjacent(_ screen1: NSScreen, _ screen2: NSScreen, spacing: CGFloat) -> (horizontal: Bool, vertical: Bool, ascendH: Bool, ascendV: Bool) {
         let frame1 = screen1.frame
         let frame2 = screen2.frame
         
@@ -66,15 +66,21 @@ class ScreenCapturer {
         
         // Check if screens are adjacent horizontally
         let horizontalAdjacent = verticalOverlap && (
-            abs(frame1.maxX - frame2.minX) < 1 || abs(frame2.maxX - frame1.minX) < 1
+            abs(frame1.maxX - frame2.minX) < spacing || abs(frame2.maxX - frame1.minX) < spacing
         )
         
         // Check if screens are adjacent vertically
         let verticalAdjacent = horizontalOverlap && (
-            abs(frame1.maxY - frame2.minY) < 1 || abs(frame2.maxY - frame1.minY) < 1
+            abs(frame1.maxY - frame2.minY) < spacing || abs(frame2.maxY - frame1.minY) < spacing
         )
         
-        return (horizontalAdjacent, verticalAdjacent)
+        // Determine if screen2 is to the right of screen1
+        let ascendH = frame2.midX > frame1.midX
+        
+        // Determine if screen2 is above screen1
+        let ascendV = frame2.midY > frame1.midY
+        
+        return (horizontalAdjacent, verticalAdjacent, ascendH, ascendV)
     }
     
     private static func calculateAdjustedScreenPositions(screens: [NSScreen], spacing: CGFloat) -> [NSScreen: NSPoint] {
@@ -90,21 +96,15 @@ class ScreenCapturer {
             for j in (i+1)..<screens.count {
                 let screen1 = screens[i]
                 let screen2 = screens[j]
-                let adjacent = areScreensAdjacent(screen1, screen2)
+                let adjacent = areScreensAdjacent(screen1, screen2, spacing: spacing)
                 
-                if adjacent.horizontal || adjacent.vertical {
-                    let frame1 = screen1.frame
-                    let frame2 = screen2.frame
-                    
-                    // If screen2 is to the right of screen1
-                    if frame2.minX > frame1.minX && adjacent.horizontal {
-                        adjustedPositions[screen2]?.x += spacing
-                    }
-                    // If screen2 is below screen1
-                    if frame2.minY > frame1.minY && adjacent.vertical {
-                        adjustedPositions[screen2]?.y += spacing
-                    }
+                if adjacent.horizontal {
+                    adjustedPositions[adjacent.ascendH ? screen2 : screen1]?.x += spacing
                 }
+                if adjacent.vertical {
+                    adjustedPositions[adjacent.ascendV ? screen2 : screen1]?.y += spacing
+                }
+                
             }
         }
         
@@ -141,7 +141,7 @@ class ScreenCapturer {
         let screens = NSScreen.screens
         let scale = getResolutionScale(for: settings.resolutionStyle, screens: screens)
         let spacing = CGFloat(settings.screenSpacing)
-        let margin = settings.enableShadow ? shadowMargin : 0
+        let margin = settings.enableShadow ? max(shadowMargin, spacing * 2) : 0
         
         // Calculate adjusted positions
         let adjustedPositions = calculateAdjustedScreenPositions(screens: screens, spacing: spacing)
