@@ -13,6 +13,7 @@ struct CaptureSettings {
 
 class ScreenCapturer {
     private static var thumbnailCache = NSCache<NSString, NSImage>()
+    private static let shadowMargin: CGFloat = 50
     
     static func getResolutionScale(for style: ResolutionStyle, screens: [NSScreen]) -> CGFloat {
         switch style {
@@ -119,6 +120,7 @@ class ScreenCapturer {
         let screens = NSScreen.screens
         let scale = getResolutionScale(for: settings.resolutionStyle, screens: screens)
         let spacing = CGFloat(settings.screenSpacing)
+        let margin = settings.enableShadow ? shadowMargin : 0
         
         // Calculate adjusted positions
         let adjustedPositions = calculateAdjustedScreenPositions(screens: screens, spacing: spacing)
@@ -140,8 +142,8 @@ class ScreenCapturer {
 
         let totalFrame = NSRect(
             x: 0, y: 0,
-            width: (maxX - minX) * scale,
-            height: (maxY - minY) * scale
+            width: (maxX - minX) * scale + (margin * 2),
+            height: (maxY - minY) * scale + (margin * 2)
         )
 
         guard let bitmapRep = NSBitmapImageRep(
@@ -168,8 +170,8 @@ class ScreenCapturer {
                 let frame = screen.frame
                 let adjustedPosition = adjustedPositions[screen] ?? frame.origin
                 let relativeFrame = CGRect(
-                    x: (adjustedPosition.x - minX) * scale,
-                    y: (adjustedPosition.y - minY) * scale,
+                    x: (adjustedPosition.x - minX) * scale + margin,
+                    y: (adjustedPosition.y - minY) * scale + margin,
                     width: frame.width * scale,
                     height: frame.height * scale
                 )
