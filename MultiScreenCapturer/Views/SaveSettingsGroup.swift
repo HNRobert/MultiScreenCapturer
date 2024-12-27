@@ -8,10 +8,10 @@ struct SaveSettingsGroup: View {
     var body: some View {
         GroupBox("Save Settings") {
             VStack(alignment: .leading, spacing: 12) {
-                Toggle("Copy to Clipboard after Capturing", isOn: $copyToClipboard)
+                Toggle("Copy Screenshot to Clipboard after Capturing", isOn: $copyToClipboard)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 
-                Toggle("Automatically Save to ...", isOn: $autoSaveEnabled)
+                Toggle("Automatically Save Screenshot to ... after Capturing", isOn: $autoSaveEnabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 
                 if autoSaveEnabled {

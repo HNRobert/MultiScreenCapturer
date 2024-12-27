@@ -20,15 +20,23 @@ struct SettingView: View {
             .frame(maxHeight: .infinity)
             
             Button(action: captureAction) {
-                Text("Capture All Screens")
-                    .font(.headline)
-                    .padding(.vertical, 12)
-                    .frame(maxWidth: .infinity)
+                HStack {
+                    Text(isCapturing ? "Saving" : "Capture All Screens")
+                        .font(.headline)
+                    if isCapturing {
+                        ProgressView()
+                            .controlSize(.small)
+                            .tint(.secondary)
+                    }
+                }
+                .padding(.vertical, 12)
+                .frame(maxWidth: .infinity)
             }
             .disabled(isCapturing)
             .buttonStyle(.borderedProminent)
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
+            .animation(.easeInOut, value: isCapturing)
         }
         .frame(minWidth: 440, maxWidth: .infinity)
         .scrollIndicators(.visible)

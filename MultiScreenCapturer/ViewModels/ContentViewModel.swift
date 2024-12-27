@@ -41,16 +41,7 @@ class ContentViewModel: ObservableObject {
     func captureScreens(selectedScreenshot: Binding<Screenshot?>, showingMainView: Binding<Bool>) {
         isCapturing = true
         wasWindowHidden = false
-        
-        if hideWindowBeforeCapture {
-            wasWindowHidden = true
-            NSApp.mainWindow?.miniaturize(nil)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                self.performCapture(selectedScreenshot: selectedScreenshot, showingMainView: showingMainView)
-            }
-        } else {
-            performCapture(selectedScreenshot: selectedScreenshot, showingMainView: showingMainView)
-        }
+        performCapture(selectedScreenshot: selectedScreenshot, showingMainView: showingMainView)
     }
     
     private func performCapture(selectedScreenshot: Binding<Screenshot?>, showingMainView: Binding<Bool>) {
@@ -64,7 +55,9 @@ class ContentViewModel: ObservableObject {
                 enableShadow: enableShadow,
                 resolutionStyle: resolutionStyle,
                 copyToClipboard: copyToClipboard,
-                autoSaveToPath: autoSaveEnabled ? autoSavePath : nil
+                autoSaveToPath: autoSaveEnabled ? autoSavePath : nil,
+                hideWindowBeforeCapture: hideWindowBeforeCapture,
+                mainWindow: NSApp.mainWindow
             )
             
             let screenshot = await Task.detached {
@@ -81,7 +74,7 @@ class ContentViewModel: ObservableObject {
             
             // Save to sandbox on background thread
             let saved = await Task.detached {
-                return ScreenCapturer.saveToSandbox(screenshot)
+                return ScreenCapturer.saveToSandbox(screenshot as! NSImage)
             }.value
             
             guard let saved = saved else {
@@ -102,7 +95,8 @@ class ContentViewModel: ObservableObject {
             // Handle auto-save on background thread if needed
             if let path = settings.autoSaveToPath {
                 await Task.detached {
-                    ScreenCapturer.saveToPath(screenshot, path: path)
+                    ScreenCapturer
+                        .saveToPath(screenshot as! NSImage, path: path)
                 }.value
             }
             
@@ -128,7 +122,13 @@ class ContentViewModel: ObservableObject {
                 
                 // Restore window if it was hidden
                 if wasWindowHidden {
-                    NSApp.mainWindow?.deminiaturize(nil)
+                    DispatchQueue.main.async {
+                        if let window = NSApp.mainWindow {
+                            window.deminiaturize(nil)
+                            window.makeKeyAndOrderFront(nil)
+                            NSApp.activate(ignoringOtherApps: true)
+                        }
+                    }
                     wasWindowHidden = false
                 }
                 
@@ -182,9 +182,5 @@ class ContentViewModel: ObservableObject {
                 isDeletingScreenshot = false
             }
         }
-    }
-    
-    private func loadScreenshots() {
-        // 移除旧的loadScreenshots方法，因为已经整合到setupView中
     }
 }

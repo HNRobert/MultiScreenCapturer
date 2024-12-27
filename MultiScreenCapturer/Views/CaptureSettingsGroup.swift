@@ -18,17 +18,17 @@ public struct CaptureSettingsGroup: View {
     public var body: some View {
         GroupBox("Capture Settings") {
             VStack(alignment: .leading, spacing: 12) {
-                Toggle("Hide window before capture", isOn: $hideWindowBeforeCapture)
+                Toggle("Hide window when capturing", isOn: $hideWindowBeforeCapture)
                 Toggle("Enable Screen Shadow", isOn: $enableShadow)
                 
                 HStack {
-                    Text("Screen Spacing")
+                    Text("Spacing between Screens")
                     TextField("Pixels", value: $screenSpacing, format: .number)
                         .frame(width: 80)
                     Text("px")
                 }
                 
-                Picker("Screen Corners", selection: $cornerStyle) {
+                Picker("Screen Corners on", selection: $cornerStyle) {
                     ForEach(cornerStyleOptions, id: \.self) { style in
                         Text(style.rawValue).tag(style)
                     }

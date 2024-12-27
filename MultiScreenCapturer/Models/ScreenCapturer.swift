@@ -9,6 +9,8 @@ struct CaptureSettings {
     let resolutionStyle: ResolutionStyle
     let copyToClipboard: Bool
     let autoSaveToPath: String?
+    let hideWindowBeforeCapture: Bool
+    let mainWindow: NSWindow?
 }
 
 class ScreenCapturer {
@@ -115,8 +117,25 @@ class ScreenCapturer {
         enableShadow: true,
         resolutionStyle: .highestDPI,
         copyToClipboard: false,
-        autoSaveToPath: nil
+        autoSaveToPath: nil,
+        hideWindowBeforeCapture: false,
+        mainWindow: nil
     )) -> NSImage? {
+        // Temporarily hide window if needed
+        var isWindowHidden = false
+        if settings.hideWindowBeforeCapture {
+            let group = DispatchGroup()
+            group.enter()
+            DispatchQueue.main.async {
+                isWindowHidden = settings.mainWindow?.isVisible ?? false
+                settings.mainWindow?.orderOut(nil)
+                group.leave()
+            }
+            group.wait()
+            Thread.sleep(forTimeInterval: 0.1)
+        }
+        
+        // Capture screens
         let screens = NSScreen.screens
         let scale = getResolutionScale(for: settings.resolutionStyle, screens: screens)
         let spacing = CGFloat(settings.screenSpacing)
@@ -230,6 +249,13 @@ class ScreenCapturer {
 
         let finalImage = NSImage(size: totalFrame.size)
         finalImage.addRepresentation(bitmapRep)
+
+        // Restore window visibility
+        if settings.hideWindowBeforeCapture && isWindowHidden {
+            DispatchQueue.main.async {
+                settings.mainWindow?.orderFront(nil)
+            }
+        }
 
         if settings.copyToClipboard {
             copyToClipboard(finalImage)
