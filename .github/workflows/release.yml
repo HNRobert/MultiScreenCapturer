@@ -10,10 +10,33 @@ jobs:
     runs-on: macos-latest
     outputs:
       version: ${{ steps.version.outputs.VERSION }}
+      release_notes: ${{ steps.release_notes.outputs.NOTES }}
     steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          
       - name: Get version from tag
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        
+      - name: Generate Release Notes
+        id: release_notes
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          if [ -z "$LAST_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"- %s" --no-merges)
+          else
+            COMMITS=$(git log ${LAST_TAG}..HEAD --pretty=format:"- %s" --no-merges)
+          fi
+          
+          echo "NOTES<<EOF" >> $GITHUB_OUTPUT
+          echo "Release ${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "Changes in this release:" >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
   build:
     needs: setup
@@ -79,6 +102,6 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: false
-          body: ${{ steps.get_commit_message.outputs.result }}
+          body: ${{ needs.setup.outputs.release_notes }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
