@@ -1,0 +1,42 @@
+{
+  "configurations" : [
+    {
+      "id" : "1B09D74E-B53C-4018-92B3-9BEC1BB30B6A",
+      "name" : "Test Scheme Action",
+      "options" : {
+        "mainThreadCheckerEnabled" : true,
+        "mallocScribbleEnabled" : true
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : false,
+    "mainThreadCheckerEnabled" : false,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:MultiScreenCapturer.xcodeproj",
+      "identifier" : "E1A4E4FC2D182ECC0097E575",
+      "name" : "MultiScreenCapturer"
+    },
+    "uiTestingScreenshotsLifetime" : "keepNever",
+    "userAttachmentLifetime" : "keepNever"
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:MultiScreenCapturer.xcodeproj",
+        "identifier" : "E116A1F22D1C7AC4009314FB",
+        "name" : "MultiScreenCapturerTests"
+      }
+    },
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:MultiScreenCapturer.xcodeproj",
+        "identifier" : "E116A1FF2D1C7AFC009314FB",
+        "name" : "MultiScreenCapturerUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

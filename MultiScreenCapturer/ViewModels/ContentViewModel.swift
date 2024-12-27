@@ -21,7 +21,6 @@ class ContentViewModel: ObservableObject {
     @AppStorage("autoSavePath") private var autoSavePath = ""
     
     func setupView() {
-        ScreenCapturer.checkScreenCapturePermission()
         loadScreenshots()
     }
     

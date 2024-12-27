@@ -14,32 +14,6 @@ struct CaptureSettings {
 class ScreenCapturer {
     private static var thumbnailCache = NSCache<NSString, NSImage>()
     
-    static func checkScreenCapturePermission() {
-        let hasPermission = CGPreflightScreenCaptureAccess()
-
-        if (!hasPermission) {
-            let wasGranted = CGRequestScreenCaptureAccess()
-            if (!wasGranted) {
-                DispatchQueue.main.async {
-                    let alert = NSAlert()
-                    alert.messageText = "Need Screen Recording Permission"
-                    alert.informativeText = "Please grant the app permission to record the screen."
-                    alert.alertStyle = .warning
-                    alert.addButton(withTitle: "Open System Settings")
-                    alert.addButton(withTitle: "Cancel")
-
-                    if alert.runModal() == .alertFirstButtonReturn {
-                        NSWorkspace.shared.open(
-                            URL(
-                                string:
-                                    "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
-                            )!)
-                    }
-                }
-            }
-        }
-    }
-
     static func getResolutionScale(for style: ResolutionStyle, screens: [NSScreen]) -> CGFloat {
         switch style {
         case ._1080p:
@@ -86,11 +60,6 @@ class ScreenCapturer {
         copyToClipboard: false,
         autoSaveToPath: nil
     )) -> NSImage? {
-        if !CGPreflightScreenCaptureAccess() {
-            checkScreenCapturePermission()
-            return nil
-        }
-
         let screens = NSScreen.screens
         let scale = getResolutionScale(for: settings.resolutionStyle, screens: screens)
 

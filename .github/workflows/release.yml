@@ -47,21 +47,38 @@ jobs:
             -scheme MultiScreenCapturer \
             -configuration Release \
             -archivePath ./build/MultiScreenCapturer.xcarchive \
+            -destination 'generic/platform=macOS'
 
       - name: Create App Bundle
         run: |
           mkdir -p ./artifacts
           cp -r "./build/MultiScreenCapturer.xcarchive/Products/Applications/MultiScreen Capturer.app" ./artifacts/
           cd artifacts
-          zip -r ../MultiScreenCapturer-${{ needs.setup.outputs.version }}-macos.zip .
+          zip -r ../MultiScreenCapturer-v${{ needs.setup.outputs.version }}-macOS.zip .
           cd ..
+
+      - name: Get Last Commit Message
+        id: get_commit_message
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const commitMessage = await github.repos.listCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              per_page: 1
+            }).then(({ data }) => data[0].commit.message);
+            return commitMessage;
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: MultiScreenCapturer-${{ needs.setup.outputs.version }}-macos.zip
+          files: MultiScreenCapturer-v${{ needs.setup.outputs.version }}-macOS.zip
           draft: false
           prerelease: false
-          generate_release_notes: true
+          generate_release_notes: false
+          body: ${{ steps.get_commit_message.outputs.result }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
