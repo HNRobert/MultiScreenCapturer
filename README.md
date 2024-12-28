@@ -2,6 +2,10 @@
 
 A powerful macOS application for capturing multiple screens simultaneously with professional settings.
 
+## Effect:
+
+![Effect](https://github.com/user-attachments/assets/396d8b4c-2974-4e0d-91bf-48ef4fd4d718)
+
 ## Features
 
 - Capture all connected displays in a single screenshot
@@ -14,6 +18,8 @@ A powerful macOS application for capturing multiple screens simultaneously with 
 - Clipboard support
 - Share screenshots directly
 - Built with SwiftUI for modern macOS
+
+![App-Screenshot](https://github.com/user-attachments/assets/da23d17f-4f9a-43f4-bd4f-585c30d459ce)
 
 ## Settings
 
