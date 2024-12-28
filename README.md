@@ -74,4 +74,6 @@ Download the latest release from the Releases page and drag the app to your Appl
 
 ## License
 
-<!-- TODO -->
+MIT License
+
+Copyright (c) 2024 Robert He
