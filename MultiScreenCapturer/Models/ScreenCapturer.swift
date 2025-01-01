@@ -1,5 +1,7 @@
 import AppKit
 import Foundation
+import ImageIO
+import UniformTypeIdentifiers
 
 struct CaptureSettings {
     let cornerStyle: ScreenCornerStyle
@@ -141,7 +143,7 @@ class ScreenCapturer {
         let screens = NSScreen.screens
         let scale = getResolutionScale(for: settings.resolutionStyle, screens: screens)
         let spacing = CGFloat(settings.screenSpacing)
-        let margin = settings.enableShadow ? max(shadowMargin, spacing * 2) : 0
+        let margin = settings.enableShadow ? max(shadowMargin, spacing) : spacing
         
         // Calculate adjusted positions
         let adjustedPositions = calculateAdjustedScreenPositions(screens: screens, spacing: spacing)
@@ -198,12 +200,10 @@ class ScreenCapturer {
                 )
 
                 let nsImage = NSImage(cgImage: screenShot, size: frame.size)
-
-                if settings.enableShadow {
-                    NSGraphicsContext.current?.saveGraphicsState()
-                    macOSWindowShadow.set()
-                }
-
+                
+                // 保存当前图形状态
+                NSGraphicsContext.current?.saveGraphicsState()
+                
                 let cornerSettings = shouldApplyCornersRadius(for: screen, style: settings.cornerStyle)
                 if cornerSettings.apply {
                     if cornerSettings.topOnly {
@@ -225,25 +225,37 @@ class ScreenCapturer {
                                      clockwise: true)
                         path.line(to: NSPoint(x: relativeFrame.maxX, y: relativeFrame.minY))
                         path.close()
-                        NSGraphicsContext.current?.saveGraphicsState()
                         path.addClip()
                     } else {
                         // All corners
                         let path = NSBezierPath(roundedRect: relativeFrame,
                                               xRadius: CGFloat(settings.cornerRadius),
                                               yRadius: CGFloat(settings.cornerRadius))
-                        NSGraphicsContext.current?.saveGraphicsState()
                         path.addClip()
                     }
                 }
 
-                nsImage.draw(in: relativeFrame)
-
+                // 先绘制阴影
                 if settings.enableShadow {
-                    NSGraphicsContext.current?.restoreGraphicsState()
-                } else if cornerSettings.apply {
-                    NSGraphicsContext.current?.restoreGraphicsState()
+                    // 创建阴影路径
+                    let shadowPath = cornerSettings.apply ? 
+                        (cornerSettings.topOnly ? 
+                            NSBezierPath(rect: NSRect(x: relativeFrame.minX, y: relativeFrame.minY,
+                                                    width: relativeFrame.width, height: relativeFrame.height - CGFloat(settings.cornerRadius))) :
+                            NSBezierPath(roundedRect: relativeFrame,
+                                       xRadius: CGFloat(settings.cornerRadius),
+                                       yRadius: CGFloat(settings.cornerRadius))) :
+                        NSBezierPath(rect: relativeFrame)
+                    
+                    macOSWindowShadow.set()
+                    shadowPath.fill()
                 }
+
+                // 绘制图像
+                nsImage.draw(in: relativeFrame)
+                
+                // 恢复图形状态
+                NSGraphicsContext.current?.restoreGraphicsState()
             }
         }
 
@@ -263,7 +275,21 @@ class ScreenCapturer {
             copyToClipboard(outPutImage)
         }
         
-        let finalImage = saveToSandbox(outPutImage)
+        let screenPositions = screens.map { screen in
+            let frame = screen.frame
+            let adjustedPosition = adjustedPositions[screen] ?? frame.origin
+            return ScreenPosition(
+                id: Int32(screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID ?? 0),
+                frame: CGRect(
+                    x: (adjustedPosition.x - minX) * scale + margin,
+                    y: (adjustedPosition.y - minY) * scale + margin,
+                    width: frame.width * scale,
+                    height: frame.height * scale
+                )
+            )
+        }
+        
+        let finalImage = saveToSandbox(outPutImage, screenPositions: screenPositions)
 
         if settings.autoSaveEnabled && !settings.autoSavePath.isEmpty {
             if let finalImage = finalImage {
@@ -310,7 +336,7 @@ class ScreenCapturer {
         }
     }
 
-    private static func convertToPNGData(_ image: NSImage) -> Data? {
+    static func convertToPNGData(_ image: NSImage) -> Data? {
         guard let tiffData = image.tiffRepresentation,
               let bitmapImage = NSBitmapImageRep(data: tiffData),
               let pngData = bitmapImage.representation(using: .png, properties: [:]) else {
@@ -319,38 +345,63 @@ class ScreenCapturer {
         return pngData
     }
 
-    static func saveToSandbox(_ image: NSImage) -> Screenshot? {
-        guard
-            let documentDirectory = FileManager.default.urls(
-                for: .documentDirectory, in: .userDomainMask
-            ).first
-        else {
-            print("Failed to get document directory")
+    private static func saveImageWithMetadata(_ image: NSImage, metadata: ScreenMetadata, to url: URL) -> Bool {
+        guard let imageData = convertToPNGData(image) else { return false }
+        guard let metadataJson = try? JSONEncoder().encode(metadata) else { return false }
+        guard let metadataString = String(data: metadataJson, encoding: .utf8) else { return false }
+        
+        let dest = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil as CFDictionary?)
+        guard let destination = dest else { return false }
+        
+        let properties = [
+            kCGImagePropertyPNGDictionary: [
+                "Metadata": metadataString
+            ]
+        ] as CFDictionary
+        
+        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return false }
+        CGImageDestinationAddImage(destination, cgImage, properties)
+        return CGImageDestinationFinalize(destination)
+    }
+    
+    static func extractScreenImage(_ screenshot: Screenshot, screenPosition: ScreenPosition) -> NSImage? {
+        guard let originalImage = NSImage(contentsOfFile: screenshot.filepath) else { return nil }
+        let cropRect = screenPosition.frame
+        
+        let croppedImage = NSImage(size: cropRect.size)
+        croppedImage.lockFocus()
+        originalImage.draw(in: NSRect(origin: .zero, size: cropRect.size),
+                         from: cropRect,
+                         operation: .copy,
+                         fraction: 1.0)
+        croppedImage.unlockFocus()
+        
+        return croppedImage
+    }
+    
+    static func saveToSandbox(_ image: NSImage, screenPositions: [ScreenPosition]) -> Screenshot? {
+        guard let documentDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
             return nil
         }
-
+        
         try? FileManager.default.createDirectory(at: documentDirectory, withIntermediateDirectories: true)
-
+        
         let now = Date()
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd-HHmmss"
         let filename = "screenshot-\(formatter.string(from: now)).png"
         let fileURL = documentDirectory.appendingPathComponent(filename)
-
-        if let pngData = convertToPNGData(image) {
-            do {
-                try pngData.write(to: fileURL)
-                return Screenshot(
-                    id: UUID(),
-                    timestamp: now,
-                    filepath: fileURL.path
-                )
-            } catch {
-                print("Failed to save image: \(error.localizedDescription)")
-                return nil
-            }
+        
+        let metadata = ScreenMetadata(screenCount: screenPositions.count, screenPositions: screenPositions)
+        if saveImageWithMetadata(image, metadata: metadata, to: fileURL) {
+            return Screenshot(
+                id: UUID(),
+                timestamp: now,
+                filepath: fileURL.path,
+                metadata: metadata
+            )
         }
-
+        
         return nil
     }
 

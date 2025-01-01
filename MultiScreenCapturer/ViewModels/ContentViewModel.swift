@@ -125,6 +125,62 @@ class ContentViewModel: ObservableObject {
         }
     }
     
+    private func showSaveOptions(_ screenshot: Screenshot) {
+        guard let metadata = screenshot.metadata else { return }
+        
+        let menu = NSMenu()
+        menu.addItem(NSMenuItem(title: "Save as Single Image", action: #selector(NSApp.sendAction(_:to:from:)), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "Save as Separate Images", action: #selector(NSApp.sendAction(_:to:from:)), keyEquivalent: ""))
+        
+        let items = menu.items
+        items[0].target = self
+        items[0].action = #selector(saveSingleImage(_:))
+        items[0].representedObject = screenshot
+        
+        items[1].target = self
+        items[1].action = #selector(saveSeparateImages(_:))
+        items[1].representedObject = screenshot
+        
+        if let view = NSApp.mainWindow?.contentView {
+            let point = NSPoint(x: view.frame.width/2, y: view.frame.height/2)
+            menu.popUp(positioning: nil, at: point, in: view)
+        }
+    }
+    
+    @objc private func saveSingleImage(_ sender: NSMenuItem) {
+        guard let screenshot = sender.representedObject as? Screenshot else { return }
+        Task {
+            await saveScreenshot(screenshot)
+        }
+    }
+    
+    @objc private func saveSeparateImages(_ sender: NSMenuItem) {
+        guard let screenshot = sender.representedObject as? Screenshot,
+              let metadata = screenshot.metadata else { return }
+        
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.canCreateDirectories = true
+        panel.prompt = "Select Save Location"
+        
+        panel.begin { response in
+            guard response == .OK,
+                  let url = panel.url else { return }
+            
+            for (index, position) in metadata.screenPositions.enumerated() {
+                guard let screenImage = ScreenCapturer.extractScreenImage(screenshot, screenPosition: position) else { continue }
+                
+                let filename = "screen\(index + 1)_\((screenshot.filepath as NSString).lastPathComponent)"
+                let fileURL = url.appendingPathComponent(filename)
+                
+                if let pngData = ScreenCapturer.convertToPNGData(screenImage) {
+                    try? pngData.write(to: fileURL)
+                }
+            }
+        }
+    }
+    
     func saveScreenshot(_ screenshot: Screenshot?) async {
         guard let screenshot = screenshot else { 
             // Show error message
@@ -138,7 +194,7 @@ class ContentViewModel: ObservableObject {
             }
             return
         }
-        ScreenCapturer.saveScreenshot(screenshot)
+        showSaveOptions(screenshot)
     }
     
     func deleteSelectedScreenshot(_ screenshot: Screenshot?, selectedScreenshot: Binding<Screenshot?>, showingMainView: Binding<Bool>) {

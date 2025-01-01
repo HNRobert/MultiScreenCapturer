@@ -1,4 +1,16 @@
 import Foundation
+import ImageIO
+import CoreGraphics
+
+struct ScreenPosition: Codable {
+    let id: Int32
+    let frame: CGRect
+}
+
+struct ScreenMetadata: Codable {
+    let screenCount: Int
+    let screenPositions: [ScreenPosition]
+}
 
 enum ScreenCornerStyle: String, Codable {
     case none = "No Corners"
@@ -19,6 +31,7 @@ struct Screenshot: Identifiable, Equatable, Hashable {
     let id: UUID
     let timestamp: Date
     let filepath: String
+    var metadata: ScreenMetadata?
     
     var displayName: String {
         let formatter = DateFormatter()
@@ -55,6 +68,21 @@ struct Screenshot: Identifiable, Equatable, Hashable {
         } catch {
             print("Error loading screenshots: \(error)")
             return []
+        }
+    }
+    
+    func loadMetadata() -> ScreenMetadata? {
+        guard let url = URL(string: "file://" + filepath) else { return nil }
+        guard let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+        guard let properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil as CFDictionary?) as? [String: Any] else { return nil }
+        guard let pngProperties = properties["{PNG}"] as? [String: Any] else { return nil }
+        guard let metadataString = pngProperties["Metadata"] as? String else { return nil }
+        guard let metadataData = metadataString.data(using: String.Encoding.utf8) else { return nil }
+        do {
+            return try JSONDecoder().decode(ScreenMetadata.self, from: metadataData)
+        } catch {
+            print("Error decoding metadata: \(error)")
+            return nil
         }
     }
     
